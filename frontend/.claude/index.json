@@ -1,0 +1,285 @@
+{
+  "version": "1.0.0",
+  "project_name": "校园二手交易推荐系统 - 前端",
+  "last_scan": "2025-11-25T00:02:47+08:00",
+  "root_path": "/Users/yycy/Library/CloudStorage/OneDrive-个人/GCC/大三上/软件工程/school-secondhand-trading-system/frontend",
+  "summary": {
+    "total_files": 30,
+    "scanned_files": 30,
+    "coverage_percentage": 100,
+    "languages": {
+      "TypeScript": 18,
+      "Vue": 12,
+      "SCSS": 3,
+      "CSS": 1,
+      "JSON": 5,
+      "HTML": 1
+    },
+    "modules_count": 7,
+    "ignored_patterns": [
+      "node_modules/**",
+      ".git/**",
+      "dist/**",
+      "dist-ssr/**",
+      "coverage/**",
+      "*.log",
+      ".DS_Store"
+    ]
+  },
+  "modules": [
+    {
+      "name": "api",
+      "path": "src/api",
+      "description": "API 接口定义与调用",
+      "entry_files": [
+        "src/api/user.ts",
+        "src/api/product.ts",
+        "src/api/home.ts",
+        "src/api/category.ts",
+        "src/api/tag.ts"
+      ],
+      "key_interfaces": [
+        "register()",
+        "login()",
+        "getProfile()",
+        "createProduct()",
+        "updateProduct()",
+        "getProductDetail()",
+        "searchProducts()",
+        "getHomeData()",
+        "getCategories()",
+        "getTags()"
+      ],
+      "dependencies": [
+        "@/utils/request.ts",
+        "@common/types/api",
+        "@common/types/user",
+        "@common/types/product"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/api/CLAUDE.md",
+      "gaps": [
+        "缺少单元测试",
+        "建议添加 MSW 模拟测试"
+      ]
+    },
+    {
+      "name": "stores",
+      "path": "src/stores",
+      "description": "Pinia 状态管理",
+      "entry_files": [
+        "src/stores/index.ts",
+        "src/stores/user.ts",
+        "src/stores/product.ts",
+        "src/stores/app.ts"
+      ],
+      "key_interfaces": [
+        "useUserStore() - 用户认证状态",
+        "useProductStore() - 商品数据状态",
+        "useAppStore() - 全局字典状态"
+      ],
+      "dependencies": [
+        "pinia",
+        "@/api/*"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/stores/CLAUDE.md",
+      "gaps": [
+        "缺少单元测试",
+        "建议添加 pinia.testing 测试"
+      ]
+    },
+    {
+      "name": "views",
+      "path": "src/views",
+      "description": "页面级 Vue 组件",
+      "entry_files": [
+        "src/views/home/Index.vue",
+        "src/views/product/Detail.vue",
+        "src/views/product/New.vue",
+        "src/views/product/Edit.vue",
+        "src/views/product/MyProducts.vue",
+        "src/views/user/Login.vue",
+        "src/views/user/Register.vue",
+        "src/views/user/Profile.vue",
+        "src/views/category/Index.vue",
+        "src/views/search/Index.vue"
+      ],
+      "key_interfaces": [
+        "首页 - 推荐和最新商品",
+        "商品详情 - 查看详情和联系卖家",
+        "发布/编辑商品 - 表单提交",
+        "我的商品 - 管理商品状态",
+        "登录/注册 - 用户认证",
+        "个人中心 - 资料管理",
+        "分类浏览 - 按分类查看商品",
+        "搜索结果 - 多条件筛选"
+      ],
+      "dependencies": [
+        "vue-router",
+        "@/stores/*",
+        "@/api/*"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/views/CLAUDE.md",
+      "gaps": [
+        "缺少组件测试",
+        "部分页面逻辑未实现（参考 docs/前端开发任务.md）"
+      ]
+    },
+    {
+      "name": "components",
+      "path": "src/components",
+      "description": "可复用 UI 组件",
+      "entry_files": [
+        "src/components/common/AppHeader.vue",
+        "src/components/common/AppFooter.vue"
+      ],
+      "key_interfaces": [
+        "AppHeader - 顶部导航",
+        "AppFooter - 底部栏"
+      ],
+      "dependencies": [
+        "vue-router"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/components/CLAUDE.md",
+      "gaps": [
+        "缺少组件测试",
+        "建议添加 ProductCard, ProductList 等业务组件",
+        "建议添加 Button, Modal, Pagination 等基础组件"
+      ]
+    },
+    {
+      "name": "utils",
+      "path": "src/utils",
+      "description": "工具函数与封装",
+      "entry_files": [
+        "src/utils/request.ts",
+        "src/utils/auth.ts"
+      ],
+      "key_interfaces": [
+        "request - Axios 实例（请求/响应拦截）",
+        "getToken() / setToken() / removeToken() - Token 管理"
+      ],
+      "dependencies": [
+        "axios",
+        "@common/types/api",
+        "@common/constants/error_code"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/utils/CLAUDE.md",
+      "gaps": [
+        "缺少单元测试",
+        "建议添加 format.ts, validate.ts, storage.ts"
+      ]
+    },
+    {
+      "name": "router",
+      "path": "src/router",
+      "description": "路由配置",
+      "entry_files": [
+        "src/router/index.ts"
+      ],
+      "key_interfaces": [
+        "路由表 - 10 个页面路由",
+        "导航守卫 - 认证拦截"
+      ],
+      "dependencies": [
+        "vue-router",
+        "@/stores/user"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": null,
+      "gaps": [
+        "缺少路由测试",
+        "缺少模块级文档"
+      ]
+    },
+    {
+      "name": "assets",
+      "path": "src/assets",
+      "description": "静态资源（样式、图片）",
+      "entry_files": [
+        "src/assets/styles/theme.scss",
+        "src/assets/styles/common.scss",
+        "src/assets/styles/reset.css"
+      ],
+      "key_interfaces": [
+        "theme.scss - CSS 变量和主题配置",
+        "common.scss - 通用样式和工具类",
+        "reset.css - CSS 重置"
+      ],
+      "dependencies": [],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": null,
+      "gaps": [
+        "缺少模块级文档"
+      ]
+    }
+  ],
+  "coverage_report": {
+    "scanned_modules": [
+      "api",
+      "stores",
+      "views",
+      "components",
+      "utils"
+    ],
+    "modules_with_docs": [
+      "api",
+      "stores",
+      "views",
+      "components",
+      "utils"
+    ],
+    "modules_without_docs": [
+      "router",
+      "assets"
+    ],
+    "modules_with_tests": [],
+    "modules_without_tests": [
+      "api",
+      "stores",
+      "views",
+      "components",
+      "utils",
+      "router",
+      "assets"
+    ],
+    "overall_gaps": [
+      "无测试框架配置（建议添加 Vitest）",
+      "无单元测试覆盖",
+      "router 和 assets 模块缺少文档",
+      "部分页面逻辑未实现",
+      "缺少业务组件（ProductCard, ProductList 等）",
+      "缺少基础组件（Button, Modal, Pagination 等）",
+      "建议添加格式化、验证、存储等工具函数"
+    ]
+  },
+  "next_steps": {
+    "priority_high": [
+      "实现页面逻辑（参考 docs/前端开发任务.md）",
+      "完善 AppHeader 组件（搜索、用户菜单）"
+    ],
+    "priority_medium": [
+      "添加 ProductCard 和 ProductList 组件",
+      "为 router 和 assets 创建 CLAUDE.md",
+      "添加 Vitest 配置"
+    ],
+    "priority_low": [
+      "编写单元测试",
+      "添加格式化和验证工具函数",
+      "添加 E2E 测试框架（Playwright/Cypress）"
+    ]
+  },
+  "truncated": false,
+  "truncated_reason": null
+}

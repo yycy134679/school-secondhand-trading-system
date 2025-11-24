@@ -1,22 +1,30 @@
 <script setup lang="ts">
-import { ProductStatus } from '@common/constants/product_status'
-import type { User } from '@common/types/user'
-
-console.log('Product Status:', ProductStatus.FOR_SALE)
-const user: User = {
-  id: 1,
-  account: 'test',
-  nickname: 'Test User',
-  isAdmin: false,
-  createdAt: '',
-  updatedAt: '',
-}
-console.log('User:', user)
+import { RouterView } from 'vue-router'
+import AppHeader from './components/common/AppHeader.vue'
+import AppFooter from './components/common/AppFooter.vue'
 </script>
 
 <template>
-  <h1>Frontend App</h1>
-  <p>Check console for common module imports.</p>
+  <div class="app-layout">
+    <AppHeader />
+
+    <main class="main-content container">
+      <RouterView />
+    </main>
+
+    <AppFooter />
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px 0;
+}
+</style>
