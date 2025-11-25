@@ -1,0 +1,37 @@
+:root {
+  /* Brand Colors */
+  --color-primary: #0066FF;
+  --color-primary-hover: #0052cc;
+  --color-primary-active: #004099;
+  --primary-color: #0066FF; /* Alias for compatibility */
+
+  /* Neutral Colors */
+  --color-text-primary: #1D2129;
+  --color-text-secondary: #4E5969;
+  --color-text-tertiary: #86909C;
+  --color-border: #E5E6EB;
+  --color-bg-body: #F2F3F5;
+  --color-bg-white: #FFFFFF;
+
+  /* Aliases for compatibility */
+  --text-color: #1D2129;
+  --text-secondary: #4E5969;
+  --bg-color: #F7F8FA;
+  --border-color: #E5E6EB;
+
+  /* Functional Colors */
+  --color-success: #00B42A;
+  --color-warning: #FF7D00;
+  --color-error: #F53F3F;
+
+  /* Font Family */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+
+  /* Spacing Base */
+  --spacing-base: 4px;
+}
+
+/* SCSS Variables for usage in SCSS files if needed, though CSS vars are preferred for theming */
+$primary-color: #0066FF;
+$text-primary: #1D2129;
+$font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;

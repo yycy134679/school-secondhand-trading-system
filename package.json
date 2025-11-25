@@ -1,0 +1,13 @@
+{
+  "name": "school-secondhand-trading-system",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r run lint --fix",
+    "format": "pnpm -r format"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}

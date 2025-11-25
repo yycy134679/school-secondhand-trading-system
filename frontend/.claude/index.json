@@ -1,0 +1,343 @@
+{
+  "version": "1.0.0",
+  "project_name": "校园二手交易推荐系统 - 前端",
+  "last_scan": "2025-11-25T15:15:16+08:00",
+  "summary": {
+    "total_files": 41,
+    "scanned_files": 41,
+    "coverage_percentage": 100,
+    "languages": {
+      "TypeScript": 16,
+      "Vue": 25,
+      "SCSS": 2,
+      "CSS": 1,
+      "JSON": 5,
+      "HTML": 1
+    },
+    "modules_count": 7,
+    "ignored_patterns": [
+      "node_modules/**",
+      ".git/**",
+      "dist/**",
+      "dist-ssr/**",
+      "coverage/**",
+      "*.log",
+      ".DS_Store"
+    ]
+  },
+  "modules": [
+    {
+      "name": "api",
+      "path": "src/api",
+      "description": "API 接口定义与调用",
+      "entry_files": [
+        "src/api/user.ts",
+        "src/api/product.ts",
+        "src/api/home.ts",
+        "src/api/category.ts",
+        "src/api/tag.ts",
+        "src/api/file.ts"
+      ],
+      "key_interfaces": [
+        "register()",
+        "login()",
+        "getProfile()",
+        "createProduct()",
+        "updateProduct()",
+        "getProductDetail()",
+        "searchProducts()",
+        "getHomeData()",
+        "getCategories()",
+        "getTags()",
+        "uploadFile() - 新增"
+      ],
+      "dependencies": [
+        "@/utils/request.ts",
+        "@common/types/api",
+        "@common/types/user",
+        "@common/types/product"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/api/CLAUDE.md",
+      "gaps": [
+        "缺少单元测试",
+        "建议添加 MSW 模拟测试"
+      ],
+      "changes": [
+        "新增 file.ts - 文件上传接口"
+      ]
+    },
+    {
+      "name": "stores",
+      "path": "src/stores",
+      "description": "Pinia 状态管理",
+      "entry_files": [
+        "src/stores/index.ts",
+        "src/stores/user.ts",
+        "src/stores/product.ts",
+        "src/stores/app.ts",
+        "src/stores/counter.ts"
+      ],
+      "key_interfaces": [
+        "useUserStore() - 用户认证状态（新增 register action）",
+        "useProductStore() - 商品数据状态",
+        "useAppStore() - 全局字典状态"
+      ],
+      "dependencies": [
+        "pinia",
+        "@/api/*"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/stores/CLAUDE.md",
+      "gaps": [
+        "缺少单元测试",
+        "建议添加 pinia.testing 测试"
+      ],
+      "changes": [
+        "user.ts 新增 register action"
+      ]
+    },
+    {
+      "name": "views",
+      "path": "src/views",
+      "description": "页面级 Vue 组件",
+      "entry_files": [
+        "src/views/home/Index.vue",
+        "src/views/product/Detail.vue",
+        "src/views/product/New.vue",
+        "src/views/product/Edit.vue",
+        "src/views/product/MyProducts.vue",
+        "src/views/user/Login.vue",
+        "src/views/user/Register.vue",
+        "src/views/user/Profile.vue",
+        "src/views/category/Index.vue",
+        "src/views/search/Index.vue"
+      ],
+      "key_interfaces": [
+        "首页 - 推荐和最新商品",
+        "商品详情 - 查看详情和联系卖家",
+        "发布/编辑商品 - 表单提交",
+        "我的商品 - 管理商品状态",
+        "登录/注册 - 用户认证",
+        "个人中心 - 资料管理",
+        "分类浏览 - 按分类查看商品",
+        "搜索结果 - 多条件筛选"
+      ],
+      "dependencies": [
+        "vue-router",
+        "@/stores/*",
+        "@/api/*"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/views/CLAUDE.md",
+      "gaps": [
+        "缺少组件测试",
+        "部分页面逻辑未实现（参考 docs/前端开发任务.md）"
+      ],
+      "changes": [
+        "Login.vue 和 Register.vue 更新使用 LoginModal 和 RegisterModal"
+      ]
+    },
+    {
+      "name": "components",
+      "path": "src/components",
+      "description": "可复用 UI 组件",
+      "entry_files": [
+        "src/components/common/AppHeader.vue",
+        "src/components/common/AppFooter.vue",
+        "src/components/common/Empty.vue",
+        "src/components/common/Loading.vue",
+        "src/components/common/Modal.vue",
+        "src/components/common/Pagination.vue",
+        "src/components/common/LoginModal.vue",
+        "src/components/product/ProductCard.vue",
+        "src/components/product/ProductForm.vue",
+        "src/components/product/ProductImageUpload.vue",
+        "src/components/product/ProductStatus.vue",
+        "src/components/user/LoginModal.vue",
+        "src/components/user/RegisterModal.vue",
+        "src/components/user/AvatarUpload.vue"
+      ],
+      "key_interfaces": [
+        "AppHeader - 顶部导航（集成搜索、用户菜单、登录注册模态框）",
+        "AppFooter - 底部栏",
+        "Empty - 空状态组件",
+        "Loading - 加载状态组件",
+        "Modal - 通用弹窗组件",
+        "Pagination - 分页组件",
+        "ProductCard - 商品卡片（新增）",
+        "ProductForm - 商品表单（新增）",
+        "ProductImageUpload - 商品图片上传（新增）",
+        "ProductStatus - 商品状态标签（新增）",
+        "LoginModal - 登录模态框（新增）",
+        "RegisterModal - 注册模态框（新增）",
+        "AvatarUpload - 头像上传（新增）"
+      ],
+      "dependencies": [
+        "vue-router",
+        "@/stores/user",
+        "@/stores/app",
+        "@/api/file"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/components/CLAUDE.md",
+      "gaps": [
+        "缺少组件测试",
+        "建议添加更多业务组件（ProductList 等）"
+      ],
+      "changes": [
+        "新增 user/ 目录，包含 LoginModal、RegisterModal、AvatarUpload",
+        "新增 product/ 组件：ProductCard、ProductForm、ProductImageUpload、ProductStatus",
+        "新增 common/ 组件：Empty、Loading、Modal、Pagination",
+        "AppHeader 完善搜索、用户菜单、登录注册功能"
+      ]
+    },
+    {
+      "name": "utils",
+      "path": "src/utils",
+      "description": "工具函数与封装",
+      "entry_files": [
+        "src/utils/request.ts",
+        "src/utils/auth.ts",
+        "src/utils/format.ts"
+      ],
+      "key_interfaces": [
+        "request - Axios 实例（请求/响应拦截）",
+        "getToken() / setToken() / removeToken() - Token 管理",
+        "formatRelativeTime() - 相对时间格式化（新增）",
+        "formatPrice() - 价格格式化（新增）"
+      ],
+      "dependencies": [
+        "axios",
+        "@common/types/api",
+        "@common/constants/error_code"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": "src/utils/CLAUDE.md",
+      "gaps": [
+        "缺少单元测试",
+        "建议添加 validate.ts, storage.ts"
+      ],
+      "changes": [
+        "新增 format.ts - 格式化工具函数（时间、价格）"
+      ]
+    },
+    {
+      "name": "router",
+      "path": "src/router",
+      "description": "路由配置",
+      "entry_files": [
+        "src/router/index.ts"
+      ],
+      "key_interfaces": [
+        "路由表 - 10 个页面路由",
+        "导航守卫 - 认证拦截"
+      ],
+      "dependencies": [
+        "vue-router",
+        "@/stores/user"
+      ],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": null,
+      "gaps": [
+        "缺少路由测试",
+        "缺少模块级文档"
+      ],
+      "changes": []
+    },
+    {
+      "name": "assets",
+      "path": "src/assets",
+      "description": "静态资源（样式、图片）",
+      "entry_files": [
+        "src/assets/styles/theme.scss",
+        "src/assets/styles/common.scss",
+        "src/assets/styles/reset.css"
+      ],
+      "key_interfaces": [
+        "theme.scss - CSS 变量和主题配置",
+        "common.scss - 通用样式和工具类",
+        "reset.css - CSS 重置"
+      ],
+      "dependencies": [],
+      "test_coverage": 0,
+      "has_tests": false,
+      "doc_path": null,
+      "gaps": [
+        "缺少模块级文档"
+      ],
+      "changes": []
+    }
+  ],
+  "coverage_report": {
+    "scanned_modules": [
+      "api",
+      "stores",
+      "views",
+      "components",
+      "utils",
+      "router",
+      "assets"
+    ],
+    "modules_with_docs": [
+      "api",
+      "stores",
+      "views",
+      "components",
+      "utils"
+    ],
+    "modules_without_docs": [
+      "router",
+      "assets"
+    ],
+    "modules_with_tests": [],
+    "modules_without_tests": [
+      "api",
+      "stores",
+      "views",
+      "components",
+      "utils",
+      "router",
+      "assets"
+    ],
+    "overall_gaps": [
+      "无测试框架配置（建议添加 Vitest）",
+      "无单元测试覆盖",
+      "router 和 assets 模块缺少文档",
+      "部分页面逻辑未实现",
+      "建议添加格式化、验证、存储等工具函数"
+    ]
+  },
+  "next_steps": {
+    "priority_high": [
+      "实现页面逻辑（参考 docs/前端开发任务.md）",
+      "完善 ProductList 组件"
+    ],
+    "priority_medium": [
+      "为 router 和 assets 创建 CLAUDE.md",
+      "添加 Vitest 配置",
+      "添加 validate.ts 和 storage.ts 工具函数"
+    ],
+    "priority_low": [
+      "编写单元测试",
+      "添加 E2E 测试框架（Playwright/Cypress）"
+    ]
+  },
+  "changes_summary": [
+    "新增 src/api/file.ts - 文件上传接口",
+    "新增 src/utils/format.ts - 格式化工具函数",
+    "新增 src/components/user/ 目录（LoginModal、RegisterModal、AvatarUpload）",
+    "新增 src/components/product/ 组件（ProductCard、ProductForm、ProductImageUpload、ProductStatus）",
+    "新增 src/components/common/ 组件（Empty、Loading、Modal、Pagination、LoginModal）",
+    "完善 AppHeader 组件（搜索、用户菜单、登录注册）",
+    "user store 新增 register action"
+  ],
+  "truncated": false,
+  "truncated_reason": null
+}
