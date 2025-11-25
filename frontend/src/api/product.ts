@@ -33,7 +33,7 @@ export interface UpdateProductParams {
   description?: string
   price?: number
   categoryId?: number
-  tagIds?: number[]
+  tagIds?: number[] // 前端使用数组，在请求前转换为逗号分隔字符串
   conditionId?: number
   imageUrls?: string[]
 }
@@ -73,7 +73,13 @@ export function createProduct(data: FormData) {
 }
 
 export function updateProduct(id: number, data: UpdateProductParams) {
-  return request.put<ApiResponse<Product>>(`/products/${id}`, data)
+  // 转换 tagIds 数组为逗号分隔字符串
+  const requestData = {
+    ...data,
+    tagIds:
+      data.tagIds && Array.isArray(data.tagIds) ? (data.tagIds.join(',') as any) : data.tagIds,
+  }
+  return request.put<ApiResponse<Product>>(`/products/${id}`, requestData)
 }
 
 export function changeProductStatus(id: number, data: ProductStatusParams) {

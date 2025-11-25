@@ -54,6 +54,18 @@ service.interceptors.response.use(
         console.warn('权限不足:', res.message)
         // 也可以 dispatch 事件让 UI 层处理
         window.dispatchEvent(new CustomEvent('auth:forbidden', { detail: res.message }))
+      } else if (res.code === ErrorCode.INVALID_STATUS_TRANSITION) {
+        // 3003: 非法状态流转
+        console.error('商品状态流转错误:', res.message)
+        window.dispatchEvent(new CustomEvent('product:invalid-status', { detail: res.message }))
+      } else if (res.code === ErrorCode.PRODUCT_SOLD) {
+        // 3004: 已售商品为终态
+        console.error('已售商品不可操作:', res.message)
+        window.dispatchEvent(new CustomEvent('product:sold', { detail: res.message }))
+      } else if (res.code === ErrorCode.REVOKE_FAILED) {
+        // 3005: 撤销失败
+        console.error('撤销操作失败:', res.message)
+        window.dispatchEvent(new CustomEvent('product:revoke-failed', { detail: res.message }))
       } else {
         // 其他业务错误
         console.error('API Error:', res.message)

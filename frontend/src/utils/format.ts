@@ -33,3 +33,24 @@ export function formatRelativeTime(dateString: string): string {
 export function formatPrice(price: number): string {
   return `¥${price.toFixed(2)}`
 }
+
+/**
+ * 将数字数组转换为逗号分隔的字符串
+ * 用于 tagIds 和 conditionIds 参数
+ */
+export function arrayToCommaSeparated(arr: number[]): string {
+  return arr.join(',')
+}
+
+/**
+ * 将逗号分隔的字符串转换为数字数组
+ */
+export function commaSeparatedToArray(str: string): number[] {
+  if (!str || str.trim() === '') {
+    return []
+  }
+  return str
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => !isNaN(n))
+}
