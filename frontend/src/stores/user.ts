@@ -2,12 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
   login as loginApi,
+  register as registerApi,
   getProfile as getProfileApi,
   updateProfile as updateProfileApi,
   changePassword as changePasswordApi,
 } from '@/api/user'
 import { setToken, getToken, removeToken } from '@/utils/auth'
-import type { LoginParams, UpdateProfileParams, ChangePasswordParams } from '@/api/user'
+import type {
+  LoginParams,
+  RegisterParams,
+  UpdateProfileParams,
+  ChangePasswordParams,
+} from '@/api/user'
 import type { User } from '@common/types/user'
 
 export const useUserStore = defineStore('user', () => {
@@ -67,6 +73,19 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function register(registerForm: RegisterParams) {
+    try {
+      const res = await registerApi(registerForm)
+      const data = res.data.data
+      token.value = data.token
+      currentUser.value = data.user
+      setToken(data.token)
+      return data
+    } catch (error) {
+      throw error
+    }
+  }
+
   return {
     token,
     currentUser,
@@ -74,6 +93,7 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     isAdmin,
     login,
+    register,
     logout,
     fetchProfile,
     updateProfile,

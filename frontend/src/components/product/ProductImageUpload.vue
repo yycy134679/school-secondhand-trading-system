@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 export interface UploadImage {
   id: string
@@ -67,8 +67,9 @@ const addFiles = (files: File[]) => {
   const updatedList = [...props.modelValue, ...newImages]
 
   // If no primary image exists, set the first one as primary
-  if (!updatedList.some(img => img.isPrimary) && updatedList.length > 0) {
-    updatedList[0].isPrimary = true
+  if (!updatedList.some((img) => img.isPrimary) && updatedList.length > 0) {
+    const first = updatedList[0]
+    if (first) first.isPrimary = true
   }
 
   emit('update:modelValue', updatedList)
@@ -77,8 +78,9 @@ const addFiles = (files: File[]) => {
 const removeImage = (id: string) => {
   const newList = props.modelValue.filter((img) => img.id !== id)
   // If we removed the primary image, set a new one if available
-  if (props.modelValue.find(img => img.id === id)?.isPrimary && newList.length > 0) {
-    newList[0].isPrimary = true
+  if (props.modelValue.find((img) => img.id === id)?.isPrimary && newList.length > 0) {
+    const first = newList[0]
+    if (first) first.isPrimary = true
   }
   emit('update:modelValue', newList)
 }
@@ -96,7 +98,7 @@ const setPrimary = (id: string) => {
   <div class="product-image-upload">
     <div class="image-list">
       <div
-        v-for="(img, index) in modelValue"
+        v-for="img in modelValue"
         :key="img.id"
         class="image-item"
         :class="{ primary: img.isPrimary }"
@@ -116,12 +118,7 @@ const setPrimary = (id: string) => {
         </div>
       </div>
 
-      <div
-        class="upload-trigger"
-        @click="triggerSelect"
-        @drop="handleDrop"
-        @dragover.prevent
-      >
+      <div class="upload-trigger" @click="triggerSelect" @drop="handleDrop" @dragover.prevent>
         <input
           type="file"
           ref="fileInput"

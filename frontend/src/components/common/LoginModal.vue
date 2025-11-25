@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
 
-const props = defineProps<{
+defineProps<{
   visible: boolean
 }>()
 
@@ -18,7 +18,7 @@ const router = useRouter()
 const form = reactive({
   account: '',
   password: '',
-  rememberMe: false
+  rememberMe: false,
 })
 
 const loading = ref(false)
@@ -45,12 +45,13 @@ const handleLogin = async () => {
     await userStore.login({
       account: form.account,
       password: form.password,
-      rememberMe: form.rememberMe
+      rememberMe: form.rememberMe,
     })
     emit('success')
     handleClose()
-  } catch (err: any) {
-    errorMsg.value = err.message || '登录失败，请检查账号密码'
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '登录失败，请检查账号密码'
+    errorMsg.value = message
   } finally {
     loading.value = false
   }
@@ -103,11 +104,7 @@ const goToRegister = () => {
           <a href="#" class="forgot-pwd">忘记密码?</a>
         </div>
 
-        <button
-          class="btn btn-primary btn-block"
-          :disabled="loading"
-          @click="handleLogin"
-        >
+        <button class="btn btn-primary btn-block" :disabled="loading" @click="handleLogin">
           {{ loading ? '登录中...' : '登录' }}
         </button>
 

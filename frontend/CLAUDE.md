@@ -2,6 +2,16 @@
 
 ## 变更记录 (Changelog)
 
+### 2025-11-25 15:15:16
+- **新增文件**: `src/api/file.ts`（文件上传接口）
+- **新增文件**: `src/utils/format.ts`（格式化工具函数）
+- **新增目录**: `src/components/user/`（用户相关组件：LoginModal、RegisterModal、AvatarUpload）
+- **完善组件**: `AppHeader.vue`（集成搜索、用户菜单、登录/注册模态框）
+- **完善组件**: `ProductForm.vue`（商品表单组件，支持创建和编辑）
+- **完善组件**: `ProductCard.vue`（商品卡片组件）
+- **更新文档**: 根级 CLAUDE.md 和 .claude/index.json
+- **覆盖率**: 源代码文件 100% 扫描完成，共识别 7 个模块，新增业务组件 10+ 个
+
 ### 2025-11-25 00:02:47
 - 初始化 AI 上下文文档
 - 生成根级 CLAUDE.md 与模块结构图
@@ -34,12 +44,15 @@
 
 ```
 src/
-├── api/          # API 接口定义
+├── api/          # API 接口定义（新增 file.ts）
 ├── assets/       # 静态资源（样式、图片）
-├── components/   # Vue 组件
+├── components/   # Vue 组件（新增 user/ 目录）
+│   ├── common/   # 公共组件（AppHeader、AppFooter、Modal、Pagination 等）
+│   ├── product/  # 商品组件（ProductCard、ProductForm、ProductImageUpload、ProductStatus）
+│   └── user/     # 用户组件（LoginModal、RegisterModal、AvatarUpload）
 ├── router/       # 路由配置
 ├── stores/       # Pinia 状态管理
-├── utils/        # 工具函数
+├── utils/        # 工具函数（新增 format.ts）
 └── views/        # 页面级组件
 ```
 
@@ -60,6 +73,7 @@ graph TD
     B --> B3["home.ts - 首页数据"];
     B --> B4["category.ts - 分类"];
     B --> B5["tag.ts - 标签"];
+    B --> B6["file.ts - 文件上传（新增）"];
 
     C --> C1["user.ts - 用户状态"];
     C --> C2["product.ts - 商品状态"];
@@ -72,9 +86,12 @@ graph TD
     D --> D5["search/ - 搜索结果"];
 
     E --> E1["common/ - 公共组件"];
+    E --> E2["product/ - 商品组件（新增 ProductCard、ProductForm）"];
+    E --> E3["user/ - 用户组件（新增目录，含 LoginModal 等）"];
 
     F --> F1["request.ts - HTTP 封装"];
     F --> F2["auth.ts - 认证工具"];
+    F --> F3["format.ts - 格式化工具（新增）"];
 
     G --> G1["styles/ - 全局样式"];
 
@@ -87,15 +104,15 @@ graph TD
 
 ## 模块索引
 
-| 模块路径 | 职责说明 | 关键文件 |
-|---------|---------|---------|
-| `src/api/` | API 接口定义与调用 | user.ts, product.ts, home.ts, category.ts, tag.ts |
-| `src/stores/` | Pinia 状态管理 | user.ts (认证), product.ts (商品), app.ts (全局字典) |
-| `src/views/` | 页面级组件 | home/, product/, user/, category/, search/ |
-| `src/components/` | 可复用 UI 组件 | common/AppHeader.vue, common/AppFooter.vue |
-| `src/utils/` | 工具函数与封装 | request.ts (Axios), auth.ts (Token) |
-| `src/router/` | 路由配置 | index.ts (路由表、导航守卫) |
-| `src/assets/` | 静态资源 | styles/ (theme.scss, common.scss, reset.css) |
+| 模块路径 | 职责说明 | 关键文件 | 更新状态 |
+|---------|---------|---------|---------|
+| `src/api/` | API 接口定义与调用 | user.ts, product.ts, home.ts, category.ts, tag.ts, **file.ts** | ✅ 新增文件上传 |
+| `src/stores/` | Pinia 状态管理 | user.ts (认证), product.ts (商品), app.ts (全局字典) | ✅ 完整 |
+| `src/views/` | 页面级组件 | home/, product/, user/, category/, search/ | ⏳ 部分逻辑待实现 |
+| `src/components/` | 可复用 UI 组件 | **common/** (AppHeader, Modal, Pagination), **product/** (ProductCard, ProductForm), **user/** (LoginModal, RegisterModal, AvatarUpload) | ✅ 新增 10+ 组件 |
+| `src/utils/` | 工具函数与封装 | request.ts (Axios), auth.ts (Token), **format.ts** (格式化) | ✅ 新增格式化工具 |
+| `src/router/` | 路由配置 | index.ts (路由表、导航守卫) | ✅ 完整 |
+| `src/assets/` | 静态资源 | styles/ (theme.scss, common.scss, reset.css) | ✅ 完整 |
 
 ## 运行与开发
 
@@ -143,7 +160,7 @@ pnpm format
 - **E2E 测试**: Playwright 或 Cypress
 
 测试覆盖优先级：
-1. utils/ 工具函数
+1. utils/ 工具函数（format.ts、auth.ts）
 2. stores/ 状态逻辑
 3. api/ 接口封装
 4. components/ 复用组件
@@ -286,4 +303,5 @@ ForSale → Sold（已售，终态不可逆）
 
 ---
 
-**最后更新**: 2025-11-25 00:02:47
+**最后更新**: 2025-11-25 15:15:16
+- 修改代码后需要使用ts和eslint检查命令查看代码是否符合规范

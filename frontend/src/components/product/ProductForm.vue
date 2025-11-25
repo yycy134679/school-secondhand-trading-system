@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { useAppStore } from '@/stores/app'
 import ProductImageUpload, { type UploadImage } from './ProductImageUpload.vue'
 
@@ -120,17 +120,9 @@ const handleSubmit = () => {
 
     <div class="form-group">
       <label class="label">分类</label>
-      <select
-        v-model="form.categoryId"
-        class="select"
-        :class="{ error: errors.categoryId }"
-      >
+      <select v-model="form.categoryId" class="select" :class="{ error: errors.categoryId }">
         <option :value="undefined" disabled>请选择分类</option>
-        <option
-          v-for="cat in appStore.categories"
-          :key="cat.id"
-          :value="cat.id"
-        >
+        <option v-for="cat in appStore.categories" :key="cat.id" :value="cat.id">
           {{ cat.name }}
         </option>
       </select>
@@ -140,16 +132,8 @@ const handleSubmit = () => {
     <div class="form-group">
       <label class="label">新旧程度</label>
       <div class="radio-group">
-        <label
-          v-for="cond in appStore.productConditions"
-          :key="cond.id"
-          class="radio-label"
-        >
-          <input
-            type="radio"
-            :value="cond.id"
-            v-model="form.conditionId"
-          />
+        <label v-for="cond in appStore.productConditions" :key="cond.id" class="radio-label">
+          <input type="radio" :value="cond.id" v-model="form.conditionId" />
           {{ cond.name }}
         </label>
       </div>
@@ -160,11 +144,7 @@ const handleSubmit = () => {
       <label class="label">标签</label>
       <div class="checkbox-group">
         <label v-for="tag in appStore.tags" :key="tag.id" class="checkbox-label">
-          <input
-            type="checkbox"
-            :value="tag.id"
-            v-model="form.tagIds"
-          />
+          <input type="checkbox" :value="tag.id" v-model="form.tagIds" />
           {{ tag.name }}
         </label>
       </div>
@@ -191,7 +171,7 @@ const handleSubmit = () => {
     <div class="form-actions">
       <button type="button" class="btn-secondary" @click="$emit('cancel')">取消</button>
       <button type="submit" class="btn-primary" :disabled="loading">
-        {{ loading ? '提交中...' : (mode === 'create' ? '发布' : '保存') }}
+        {{ loading ? '提交中...' : mode === 'create' ? '发布' : '保存' }}
       </button>
     </div>
   </form>

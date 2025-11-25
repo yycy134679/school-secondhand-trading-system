@@ -3,6 +3,7 @@
   --color-primary: #0066FF;
   --color-primary-hover: #0052cc;
   --color-primary-active: #004099;
+  --primary-color: #0066FF; /* Alias for compatibility */
 
   /* Neutral Colors */
   --color-text-primary: #1D2129;
@@ -11,6 +12,12 @@
   --color-border: #E5E6EB;
   --color-bg-body: #F2F3F5;
   --color-bg-white: #FFFFFF;
+
+  /* Aliases for compatibility */
+  --text-color: #1D2129;
+  --text-secondary: #4E5969;
+  --bg-color: #F7F8FA;
+  --border-color: #E5E6EB;
 
   /* Functional Colors */
   --color-success: #00B42A;

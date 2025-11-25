@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "project_name": "校园二手交易推荐系统 - 前端",
-  "last_scan": "2025-11-25T00:02:47+08:00",
+  "last_scan": "2025-11-25T15:15:16+08:00",
   "summary": {
-    "total_files": 30,
-    "scanned_files": 30,
+    "total_files": 41,
+    "scanned_files": 41,
     "coverage_percentage": 100,
     "languages": {
-      "TypeScript": 18,
-      "Vue": 12,
-      "SCSS": 3,
+      "TypeScript": 16,
+      "Vue": 25,
+      "SCSS": 2,
       "CSS": 1,
       "JSON": 5,
       "HTML": 1
@@ -35,7 +35,8 @@
         "src/api/product.ts",
         "src/api/home.ts",
         "src/api/category.ts",
-        "src/api/tag.ts"
+        "src/api/tag.ts",
+        "src/api/file.ts"
       ],
       "key_interfaces": [
         "register()",
@@ -47,7 +48,8 @@
         "searchProducts()",
         "getHomeData()",
         "getCategories()",
-        "getTags()"
+        "getTags()",
+        "uploadFile() - 新增"
       ],
       "dependencies": [
         "@/utils/request.ts",
@@ -61,6 +63,9 @@
       "gaps": [
         "缺少单元测试",
         "建议添加 MSW 模拟测试"
+      ],
+      "changes": [
+        "新增 file.ts - 文件上传接口"
       ]
     },
     {
@@ -71,10 +76,11 @@
         "src/stores/index.ts",
         "src/stores/user.ts",
         "src/stores/product.ts",
-        "src/stores/app.ts"
+        "src/stores/app.ts",
+        "src/stores/counter.ts"
       ],
       "key_interfaces": [
-        "useUserStore() - 用户认证状态",
+        "useUserStore() - 用户认证状态（新增 register action）",
         "useProductStore() - 商品数据状态",
         "useAppStore() - 全局字典状态"
       ],
@@ -88,6 +94,9 @@
       "gaps": [
         "缺少单元测试",
         "建议添加 pinia.testing 测试"
+      ],
+      "changes": [
+        "user.ts 新增 register action"
       ]
     },
     {
@@ -127,6 +136,9 @@
       "gaps": [
         "缺少组件测试",
         "部分页面逻辑未实现（参考 docs/前端开发任务.md）"
+      ],
+      "changes": [
+        "Login.vue 和 Register.vue 更新使用 LoginModal 和 RegisterModal"
       ]
     },
     {
@@ -135,22 +147,53 @@
       "description": "可复用 UI 组件",
       "entry_files": [
         "src/components/common/AppHeader.vue",
-        "src/components/common/AppFooter.vue"
+        "src/components/common/AppFooter.vue",
+        "src/components/common/Empty.vue",
+        "src/components/common/Loading.vue",
+        "src/components/common/Modal.vue",
+        "src/components/common/Pagination.vue",
+        "src/components/common/LoginModal.vue",
+        "src/components/product/ProductCard.vue",
+        "src/components/product/ProductForm.vue",
+        "src/components/product/ProductImageUpload.vue",
+        "src/components/product/ProductStatus.vue",
+        "src/components/user/LoginModal.vue",
+        "src/components/user/RegisterModal.vue",
+        "src/components/user/AvatarUpload.vue"
       ],
       "key_interfaces": [
-        "AppHeader - 顶部导航",
-        "AppFooter - 底部栏"
+        "AppHeader - 顶部导航（集成搜索、用户菜单、登录注册模态框）",
+        "AppFooter - 底部栏",
+        "Empty - 空状态组件",
+        "Loading - 加载状态组件",
+        "Modal - 通用弹窗组件",
+        "Pagination - 分页组件",
+        "ProductCard - 商品卡片（新增）",
+        "ProductForm - 商品表单（新增）",
+        "ProductImageUpload - 商品图片上传（新增）",
+        "ProductStatus - 商品状态标签（新增）",
+        "LoginModal - 登录模态框（新增）",
+        "RegisterModal - 注册模态框（新增）",
+        "AvatarUpload - 头像上传（新增）"
       ],
       "dependencies": [
-        "vue-router"
+        "vue-router",
+        "@/stores/user",
+        "@/stores/app",
+        "@/api/file"
       ],
       "test_coverage": 0,
       "has_tests": false,
       "doc_path": "src/components/CLAUDE.md",
       "gaps": [
         "缺少组件测试",
-        "建议添加 ProductCard, ProductList 等业务组件",
-        "建议添加 Button, Modal, Pagination 等基础组件"
+        "建议添加更多业务组件（ProductList 等）"
+      ],
+      "changes": [
+        "新增 user/ 目录，包含 LoginModal、RegisterModal、AvatarUpload",
+        "新增 product/ 组件：ProductCard、ProductForm、ProductImageUpload、ProductStatus",
+        "新增 common/ 组件：Empty、Loading、Modal、Pagination",
+        "AppHeader 完善搜索、用户菜单、登录注册功能"
       ]
     },
     {
@@ -159,11 +202,14 @@
       "description": "工具函数与封装",
       "entry_files": [
         "src/utils/request.ts",
-        "src/utils/auth.ts"
+        "src/utils/auth.ts",
+        "src/utils/format.ts"
       ],
       "key_interfaces": [
         "request - Axios 实例（请求/响应拦截）",
-        "getToken() / setToken() / removeToken() - Token 管理"
+        "getToken() / setToken() / removeToken() - Token 管理",
+        "formatRelativeTime() - 相对时间格式化（新增）",
+        "formatPrice() - 价格格式化（新增）"
       ],
       "dependencies": [
         "axios",
@@ -175,7 +221,10 @@
       "doc_path": "src/utils/CLAUDE.md",
       "gaps": [
         "缺少单元测试",
-        "建议添加 format.ts, validate.ts, storage.ts"
+        "建议添加 validate.ts, storage.ts"
+      ],
+      "changes": [
+        "新增 format.ts - 格式化工具函数（时间、价格）"
       ]
     },
     {
@@ -199,7 +248,8 @@
       "gaps": [
         "缺少路由测试",
         "缺少模块级文档"
-      ]
+      ],
+      "changes": []
     },
     {
       "name": "assets",
@@ -221,7 +271,8 @@
       "doc_path": null,
       "gaps": [
         "缺少模块级文档"
-      ]
+      ],
+      "changes": []
     }
   ],
   "coverage_report": {
@@ -230,7 +281,9 @@
       "stores",
       "views",
       "components",
-      "utils"
+      "utils",
+      "router",
+      "assets"
     ],
     "modules_with_docs": [
       "api",
@@ -258,27 +311,33 @@
       "无单元测试覆盖",
       "router 和 assets 模块缺少文档",
       "部分页面逻辑未实现",
-      "缺少业务组件（ProductCard, ProductList 等）",
-      "缺少基础组件（Button, Modal, Pagination 等）",
       "建议添加格式化、验证、存储等工具函数"
     ]
   },
   "next_steps": {
     "priority_high": [
       "实现页面逻辑（参考 docs/前端开发任务.md）",
-      "完善 AppHeader 组件（搜索、用户菜单）"
+      "完善 ProductList 组件"
     ],
     "priority_medium": [
-      "添加 ProductCard 和 ProductList 组件",
       "为 router 和 assets 创建 CLAUDE.md",
-      "添加 Vitest 配置"
+      "添加 Vitest 配置",
+      "添加 validate.ts 和 storage.ts 工具函数"
     ],
     "priority_low": [
       "编写单元测试",
-      "添加格式化和验证工具函数",
       "添加 E2E 测试框架（Playwright/Cypress）"
     ]
   },
+  "changes_summary": [
+    "新增 src/api/file.ts - 文件上传接口",
+    "新增 src/utils/format.ts - 格式化工具函数",
+    "新增 src/components/user/ 目录（LoginModal、RegisterModal、AvatarUpload）",
+    "新增 src/components/product/ 组件（ProductCard、ProductForm、ProductImageUpload、ProductStatus）",
+    "新增 src/components/common/ 组件（Empty、Loading、Modal、Pagination、LoginModal）",
+    "完善 AppHeader 组件（搜索、用户菜单、登录注册）",
+    "user store 新增 register action"
+  ],
   "truncated": false,
   "truncated_reason": null
 }

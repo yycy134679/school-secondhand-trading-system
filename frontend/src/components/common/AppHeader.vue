@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import LoginModal from './LoginModal.vue'
+import LoginModal from '@/components/user/LoginModal.vue'
+import RegisterModal from '@/components/user/RegisterModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -10,12 +11,13 @@ const userStore = useUserStore()
 
 const searchQuery = ref(route.query.q?.toString() || '')
 const showLoginModal = ref(false)
+const showRegisterModal = ref(false)
 
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
   router.push({
     path: '/search',
-    query: { q: searchQuery.value }
+    query: { q: searchQuery.value },
   })
 }
 
@@ -37,8 +39,21 @@ const handleLogout = () => {
 }
 
 const handleLoginSuccess = () => {
-  // Login modal handles closing itself, we can do extra actions here if needed
-  // For example, if we were on a protected route, we might want to refresh or redirect
+  // Login modal handles closing itself
+}
+
+const handleRegisterSuccess = () => {
+  // Register modal handles closing itself and redirecting
+}
+
+const switchToRegister = () => {
+  showLoginModal.value = false
+  showRegisterModal.value = true
+}
+
+const switchToLogin = () => {
+  showRegisterModal.value = false
+  showLoginModal.value = true
 }
 </script>
 
@@ -58,7 +73,17 @@ const handleLoginSuccess = () => {
             @keyup.enter="handleSearch"
           />
           <button class="search-btn" @click="handleSearch">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -71,7 +96,13 @@ const handleLoginSuccess = () => {
 
         <div v-if="userStore.isLoggedIn" class="user-menu">
           <div class="avatar">
-            <img :src="userStore.currentUser?.avatarUrl || 'https://ui-avatars.com/api/?name=' + (userStore.currentUser?.nickname || 'User')" alt="Avatar" />
+            <img
+              :src="
+                userStore.currentUser?.avatarUrl ||
+                'https://ui-avatars.com/api/?name=' + (userStore.currentUser?.nickname || 'User')
+              "
+              alt="Avatar"
+            />
           </div>
           <div class="dropdown-menu">
             <div class="user-name">{{ userStore.currentUser?.nickname }}</div>
@@ -91,6 +122,13 @@ const handleLoginSuccess = () => {
     <LoginModal
       v-model:visible="showLoginModal"
       @success="handleLoginSuccess"
+      @switch-to-register="switchToRegister"
+    />
+
+    <RegisterModal
+      v-model:visible="showRegisterModal"
+      @success="handleRegisterSuccess"
+      @switch-to-login="switchToLogin"
     />
   </header>
 </template>
