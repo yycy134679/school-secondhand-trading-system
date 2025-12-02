@@ -45,23 +45,13 @@ func main() {
 		log.Println("DB connection established successfully")
 	}
 
-	// 步骤3: 初始化Redis连接
-	// Redis用于：
-	// - 推荐系统的缓存
-	// - 商品状态变更的撤销记录（3秒窗口期）
-	// 如果RedisAddr为空，NewRedis会返回nil
-	rdb, err := config.NewRedis(cfg.RedisAddr)
-	if err != nil {
-		// Redis连接失败时打印警告，但不影响主要功能
-		log.Printf("warning: failed to init Redis: %v (continuing without Redis)", err)
-	}
-
-	// 步骤4: 设置路由和中间件
+	// 步骤3: 设置路由和中间件
 	// SetupRouter 会注册所有HTTP路由和中间件
 	// 包括：用户模块、商品模块、分类标签模块等
-	r := router.SetupRouter(db, rdb, cfg)
+	// 推荐系统现在使用内存缓存，不再依赖Redis
+	r := router.SetupRouter(db, cfg)
 
-	// 步骤5: 启动HTTP服务器
+	// 步骤4: 启动HTTP服务器
 	// 构造监听地址（例如：:8080）
 	addr := fmt.Sprintf(":%d", cfg.HTTPPort)
 	log.Printf("starting server on %s", addr)
