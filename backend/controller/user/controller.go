@@ -2,37 +2,35 @@
 // 负责处理用户相关的HTTP请求（注册、登录、个人信息管理等）
 package user
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/errors"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/resp"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/middleware"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/service/user"
+)
+
+// UserController 处理用户相关的HTTP请求
+// 依赖于UserService来处理业务逻辑
+// 负责参数绑定、验证、错误处理和响应格式封装
+
+// UserController 用户控制器结构体
+// 注入UserService依赖
 
 // RegisterRoutes 注册用户模块的所有路由
 //
-// 路由列表（待完善）：
-//   POST   /users/register         - 用户注册
-//   POST   /users/login            - 用户登录
-//   GET    /users/profile          - 获取个人信息（需要登录）
-//   PUT    /users/profile          - 更新个人信息（需要登录）
-//   PUT    /users/password         - 修改密码（需要登录）
-//   GET    /users/recent-views     - 最近浏览记录（需要登录）
+// 路由列表：
+//
+//	POST   /users/register         - 用户注册
+//	POST   /users/login            - 用户登录
+//	GET    /users/profile          - 获取个人信息（需要登录）
+//	PUT    /users/profile          - 更新个人信息（需要登录）
+//	PUT    /users/password         - 修改密码（需要登录）
 //
 // 参数：
 //   - rg: 父路由组，通常是 /api/v1
-//
-// 设计说明：
-//   - 公开接口（register、login）不需要认证中间件
-//   - 个人信息相关接口需要AuthMiddleware验证登录状态
-//   - 控制器层负责：
-//     1. 接收和验证HTTP请求参数
-//     2. 调用Service层处理业务逻辑
-//     3. 构造统一格式的响应
-//     4. 处理和转换错误
-//
-// TODO: 完整实现步骤
-//   1. 创建UserController结构体，注入UserService依赖
-//   2. 实现各个Handler方法（Register、Login、GetProfile等）
-//   3. 在需要登录的路由上应用AuthMiddleware
-//   4. 使用validator验证请求参数
-//   5. 使用resp.Success/resp.Error返回统一响应
-func RegisterRoutes(rg *gin.RouterGroup) {
+//   - userService: 用户服务实例，用于处理业务逻辑
+func RegisterRoutes(rg *gin.RouterGroup, userService *user.UserService) {
 	// 创建用户路由组，前缀为 /users
 	// 最终路径为：/api/v1/users/*
 	usr := rg.Group("/users")
@@ -40,58 +38,175 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 		// ============ 公开接口（无需登录）============
 
 		// POST /api/v1/users/register - 用户注册
-		// 请求体示例：
-		// {
-		//   "account": "zhang123",
-		//   "nickname": "张三",
-		//   "password": "password123",
-		//   "confirmPassword": "password123",
-		//   "wechatId": "wx_zhang123"  // 可选
-		// }
-		// 响应：
-		// {
-		//   "code": 0,
-		//   "message": "ok",
-		//   "data": {
-		//     "user": {...},
-		//     "token": "eyJhbGciOiJIUzI1NiIs..."
-		//   }
-		// }
 		usr.POST("/register", func(c *gin.Context) {
-			c.JSON(200, gin.H{"msg": "register stub - 待实现"})
-			// TODO: 实现注册逻辑
+			var req struct {
+				Account         string  `json:"account" binding:"required"`
+				Nickname        string  `json:"nickname" binding:"required"`
+				Password        string  `json:"password" binding:"required"`
+				ConfirmPassword string  `json:"confirmPassword" binding:"required"`
+				WechatID        *string `json:"wechatId,omitempty"`
+			}
+
+			// 绑定请求体
+			if err := c.ShouldBindJSON(&req); err != nil {
+				resp.Error(c, errors.CodeInvalidParams, "请求参数错误: "+err.Error())
+				return
+			}
+
+			// 验证密码一致性
+			if req.Password != req.ConfirmPassword {
+				resp.Error(c, errors.CodeInvalidParams, "两次输入的密码不一致")
+				return
+			}
+
+			// 调用服务层注册用户
+			authResp, err := userService.Register(c.Request.Context(), req.Account, req.Nickname, req.Password, req.WechatID)
+			if err != nil {
+				// 根据错误类型返回对应的错误信息
+				resp.Error(c, errors.CodeInvalidParams, err.Error())
+				return
+			}
+
+			// 返回成功响应
+			resp.Success(c, authResp)
 		})
 
 		// POST /api/v1/users/login - 用户登录
-		// 请求体示例：
-		// {
-		//   "account": "zhang123",
-		//   "password": "password123",
-		//   "rememberMe": true  // 是否记住登录（token有效期更长）
-		// }
-		// 响应：
-		// {
-		//   "code": 0,
-		//   "message": "ok",
-		//   "data": {
-		//     "user": {...},
-		//     "token": "eyJhbGciOiJIUzI1NiIs..."
-		//   }
-		// }
 		usr.POST("/login", func(c *gin.Context) {
-			c.JSON(200, gin.H{"msg": "login stub - 待实现"})
-			// TODO: 实现登录逻辑
+			var req struct {
+				Account    string `json:"account" binding:"required"`
+				Password   string `json:"password" binding:"required"`
+				RememberMe bool   `json:"rememberMe"`
+			}
+
+			// 绑定请求体
+			if err := c.ShouldBindJSON(&req); err != nil {
+				resp.Error(c, errors.CodeInvalidParams, "请求参数错误: "+err.Error())
+				return
+			}
+
+			// 调用服务层登录
+			authResp, err := userService.Login(c.Request.Context(), req.Account, req.Password, req.RememberMe)
+			if err != nil {
+				// 根据错误类型返回对应的错误信息
+				resp.Error(c, errors.CodeInvalidParams, err.Error())
+				return
+			}
+
+			// 返回成功响应
+			resp.Success(c, authResp)
 		})
 
 		// ============ 需要登录的接口 ============
-		// TODO: 添加AuthMiddleware中间件
-		// authorized := usr.Group("")
-		// authorized.Use(middleware.AuthMiddleware())
-		// {
-		//     authorized.GET("/profile", handleGetProfile)
-		//     authorized.PUT("/profile", handleUpdateProfile)
-		//     authorized.PUT("/password", handleChangePassword)
-		//     authorized.GET("/recent-views", handleRecentViews)
-		// }
+		// 创建需要认证的路由组
+		authorized := usr.Group("")
+		// 添加认证中间件，确保用户已登录
+		authorized.Use(middleware.AuthMiddleware())
+		{
+			// GET /api/v1/users/profile - 获取个人信息
+			authorized.GET("/profile", func(c *gin.Context) {
+				// 从上下文获取userID（由AuthMiddleware注入）
+				userIDInterface, exists := c.Get("userID")
+				if !exists {
+					resp.Error(c, errors.CodeUnauthenticated, "用户未登录")
+					return
+				}
+				userID, ok := userIDInterface.(uint)
+				if !ok {
+					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
+					return
+				}
+
+				// 调用服务层获取用户信息
+				userResp, err := userService.GetProfile(c.Request.Context(), userID)
+				if err != nil {
+					resp.Error(c, errors.CodeInvalidParams, err.Error())
+					return
+				}
+
+				// 返回成功响应
+				resp.Success(c, userResp)
+			})
+
+			// PUT /api/v1/users/profile - 更新个人信息
+			authorized.PUT("/profile", func(c *gin.Context) {
+				var req struct {
+					Nickname  string  `json:"nickname"`
+					AvatarURL string  `json:"avatarUrl"`
+					WechatID  *string `json:"wechatId,omitempty"`
+				}
+
+				// 绑定请求体
+				if err := c.ShouldBindJSON(&req); err != nil {
+					resp.Error(c, errors.CodeInvalidParams, "请求参数错误: "+err.Error())
+					return
+				}
+
+				// 从上下文获取userID（由AuthMiddleware注入）
+				userIDInterface, exists := c.Get("userID")
+				if !exists {
+					resp.Error(c, errors.CodeUnauthenticated, "用户未登录")
+					return
+				}
+				userID, ok := userIDInterface.(uint)
+				if !ok {
+					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
+					return
+				}
+
+				// 调用服务层更新用户信息
+				userResp, err := userService.UpdateProfile(c.Request.Context(), userID, req.Nickname, req.AvatarURL, req.WechatID)
+				if err != nil {
+					resp.Error(c, errors.CodeInvalidParams, err.Error())
+					return
+				}
+
+				// 返回成功响应
+				resp.Success(c, userResp)
+			})
+
+			// PUT /api/v1/users/password - 修改密码
+			authorized.PUT("/password", func(c *gin.Context) {
+				var req struct {
+					OldPassword     string `json:"oldPassword" binding:"required"`
+					NewPassword     string `json:"newPassword" binding:"required"`
+					ConfirmPassword string `json:"confirmPassword" binding:"required"`
+				}
+
+				// 绑定请求体
+				if err := c.ShouldBindJSON(&req); err != nil {
+					resp.Error(c, errors.CodeInvalidParams, "请求参数错误: "+err.Error())
+					return
+				}
+
+				// 验证新密码一致性
+				if req.NewPassword != req.ConfirmPassword {
+					resp.Error(c, errors.CodeInvalidParams, "两次输入的新密码不一致")
+					return
+				}
+
+				// 从上下文获取userID（由AuthMiddleware注入）
+				userIDInterface, exists := c.Get("userID")
+				if !exists {
+					resp.Error(c, errors.CodeUnauthenticated, "用户未登录")
+					return
+				}
+				userID, ok := userIDInterface.(uint)
+				if !ok {
+					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
+					return
+				}
+
+				// 调用服务层修改密码
+				userResp, err := userService.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword)
+				if err != nil {
+					resp.Error(c, errors.CodeInvalidParams, err.Error())
+					return
+				}
+
+				// 返回成功响应
+				resp.Success(c, userResp)
+			})
+		}
 	}
 }

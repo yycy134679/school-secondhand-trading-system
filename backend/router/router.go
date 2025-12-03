@@ -8,8 +8,18 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/yycy134679/school-secondhand-trading-system/backend/config"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/admin"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/category"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/product"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/tag"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/user"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/middleware"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/repository"
+	adminservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/admin"
+	categoryservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/category"
+	productservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/product"
+	tagservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/tag"
+	userservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/user"
 )
 
 // SetupRouter 初始化并配置HTTP路由引擎
@@ -60,14 +70,20 @@ func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	// - 便于API版本管理（将来可以添加/api/v2）
 	api := r.Group("/api/v1")
 	{
+		// 初始化用户相关组件
+		// 创建用户仓库实例
+		userRepo := repository.NewUserRepository(db)
+		// 创建用户服务实例
+		userService := userservice.NewUserService(userRepo)
+
 		// 注册用户模块路由
-		// 包含的接口（示例）：
+		// 包含的接口：
 		// POST /api/v1/users/register  - 用户注册
 		// POST /api/v1/users/login     - 用户登录
 		// GET  /api/v1/users/profile   - 获取个人信息
 		// PUT  /api/v1/users/profile   - 更新个人信息
 		// PUT  /api/v1/users/password  - 修改密码
-		user.RegisterRoutes(api)
+		user.RegisterRoutes(api, userService)
 
 		// 注册商品模块路由
 		// 包含的接口（示例）：
@@ -76,13 +92,49 @@ func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		// PUT  /api/v1/products/:id     - 编辑商品
 		// GET  /api/v1/products/search  - 搜索商品
 		// GET  /api/v1/products/my      - 我的发布
-		product.RegisterRoutes(api)
+		// 创建商品相关组件
+		productService := productservice.NewProductService()
+		productController := product.NewProductController(productService)
+		imageController := product.NewImageController(productService)
+		SetupProductRoutes(r, productController, imageController)
 
-		// TODO: 注册其他模块路由
-		// category.RegisterRoutes(api)  - 分类管理
-		// tag.RegisterRoutes(api)       - 标签管理
-		// recommend.RegisterRoutes(api) - 推荐系统
-		// admin.RegisterRoutes(api)     - 后台管理
+		// 初始化分类和标签相关组件
+		// 创建仓库层实例
+		categoryRepo := repository.NewCategoryRepository(db)
+		tagRepo := repository.NewTagRepository(db)
+
+		// 创建服务层实例
+		categoryService := categoryservice.NewCategoryService(categoryRepo)
+		tagService := tagservice.NewTagService(tagRepo)
+
+		// 创建控制器实例
+		categoryController := category.NewCategoryController(categoryService)
+		tagController := tag.NewTagController(tagService)
+
+		// 创建管理员中间件
+		adminMiddleware := middleware.AdminMiddleware()
+
+		// 注册分类模块路由
+		SetupCategoryRoutes(r, categoryController)
+
+		// 注册标签模块路由
+		SetupTagRoutes(r, tagController)
+
+		// 初始化管理后台相关组件
+		// 创建服务层实例
+		adminService := adminservice.NewAdminService(db)
+
+		// 为管理后台创建专用的分类和标签控制器实例
+		adminCategoryController := admin.NewCategoryController(categoryService)
+		adminTagController := admin.NewTagController(tagService)
+
+		// 创建其他管理后台控制器实例
+		dashboardController := admin.NewDashboardController(adminService)
+		userController := admin.NewUserController(adminService)
+		adminProductController := admin.NewProductController(adminService)
+
+		// 注册管理后台路由
+		RegisterAdminRoutes(api, dashboardController, userController, adminProductController, adminCategoryController, adminTagController, adminMiddleware)
 	}
 
 	// 返回配置好的Gin引擎实例

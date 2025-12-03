@@ -2,6 +2,14 @@
 // JWT用于实现无状态的用户认证
 package auth
 
+import (
+	"time"
+
+	jwt "github.com/golang-jwt/jwt/v5"
+
+	"github.com/yycy134679/school-secondhand-trading-system/backend/config"
+)
+
 // JWT（JSON Web Token）说明：
 // JWT是一种用于在双方之间安全传输信息的开放标准（RFC 7519）
 // 特点：
@@ -52,40 +60,36 @@ package auth
 //   - 记住我：7天（604800秒）
 //
 // 使用示例：
-//   token, err := GenerateToken(user.ID, user.IsAdmin, true)
-//   if err != nil {
-//       return err
-//   }
-//   // 将token返回给前端
+//
+//	token, err := GenerateToken(user.ID, user.IsAdmin, true)
+//	if err != nil {
+//	    return err
+//	}
+//	// 将token返回给前端
 //
 // TODO: 使用 github.com/golang-jwt/jwt/v5 实现
-//   1. 定义Claims结构体（包含userID、isAdmin、exp等字段）
-//   2. 创建token对象：jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-//   3. 使用密钥签名：token.SignedString([]byte(jwtSecret))
+//  1. 定义Claims结构体（包含userID、isAdmin、exp等字段）
+//  2. 创建token对象：jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+//  3. 使用密钥签名：token.SignedString([]byte(jwtSecret))
 func GenerateToken(userID int64) (string, error) {
-	// TODO: 实现JWT生成逻辑
-	// 伪代码示例：
-	//
-	// // 1. 定义Claims
-	// claims := jwt.MapClaims{
-	//     "userId":  userID,
-	//     "isAdmin": isAdmin,
-	//     "exp":     time.Now().Add(time.Hour * 1).Unix(),  // 1小时后过期
-	//     "iat":     time.Now().Unix(),
-	//     "iss":     "secondhand-app",
-	// }
-	//
-	// // 如果记住我，延长有效期
-	// if rememberMe {
-	//     claims["exp"] = time.Now().Add(time.Hour * 24 * 7).Unix()  // 7天
-	// }
-	//
-	// // 2. 创建token
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	//
-	// // 3. 签名并返回token字符串
-	// return token.SignedString([]byte(config.JWTSecret))
-	return "", nil
+	// 创建claims
+	expiration := time.Now().Add(time.Hour)
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     expiration.Unix(),
+		"iat":     time.Now().Unix(),
+	}
+
+	// 创建token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// 签名并返回token字符串
+	// 从配置中获取JWT密钥，如果未设置则使用默认值
+	jwtSecret := "please-change-this" // 默认密钥
+	if config, err := config.LoadConfig(); err == nil {
+		jwtSecret = config.JWTSecret
+	}
+	return token.SignedString([]byte(jwtSecret))
 }
 
 // ParseToken 解析并验证JWT token（待实现）
@@ -111,18 +115,19 @@ func GenerateToken(userID int64) (string, error) {
 //   - Claims格式不正确
 //
 // 使用示例：
-//   userID, isAdmin, err := ParseToken(tokenString)
-//   if err != nil {
-//       // token无效
-//       return errors.New("token无效或已过期")
-//   }
-//   // 使用userID和isAdmin进行后续处理
+//
+//	userID, isAdmin, err := ParseToken(tokenString)
+//	if err != nil {
+//	    // token无效
+//	    return errors.New("token无效或已过期")
+//	}
+//	// 使用userID和isAdmin进行后续处理
 //
 // TODO: 使用 github.com/golang-jwt/jwt/v5 实现
-//   1. 解析token：jwt.Parse(tokenString, keyFunc)
-//   2. 在keyFunc中返回验证密钥：[]byte(config.JWTSecret)
-//   3. 验证token有效性：token.Valid
-//   4. 提取Claims并返回userID和isAdmin
+//  1. 解析token：jwt.Parse(tokenString, keyFunc)
+//  2. 在keyFunc中返回验证密钥：[]byte(config.JWTSecret)
+//  3. 验证token有效性：token.Valid
+//  4. 提取Claims并返回userID和isAdmin
 func ParseToken(token string) (int64, error) {
 	// TODO: 实现JWT解析逻辑
 	// 伪代码示例：

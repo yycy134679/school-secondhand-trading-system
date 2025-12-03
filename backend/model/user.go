@@ -36,14 +36,16 @@ import "time"
 //   - 实际数据库表中还有 wechat_id 和 last_nickname_changed_at 字段
 //     后续需要根据需求补充到模型中
 type User struct {
-	ID        int64     `json:"id" gorm:"primaryKey"`                   // 主键ID
-	Account   string    `json:"account" gorm:"uniqueIndex;size:50"`     // 登录账号（唯一索引）
-	Nickname  string    `json:"nickname" gorm:"size:50"`                // 用户昵称
-	Password  string    `json:"-" gorm:"column:password_hash;size:255"` // 密码哈希（不返回给前端）
-	AvatarURL string    `json:"avatar_url" gorm:"size:500"`             // 头像URL
-	IsAdmin   bool      `json:"is_admin" gorm:"default:false"`          // 是否管理员
-	CreatedAt time.Time `json:"created_at"`                             // 创建时间
-	UpdatedAt time.Time `json:"updated_at"`                             // 更新时间
+	ID                    int64      `json:"id" gorm:"primaryKey"`                         // 主键ID
+	Account               string     `json:"account" gorm:"uniqueIndex;size:50"`           // 登录账号（唯一索引）
+	Nickname              string     `json:"nickname" gorm:"size:50"`                      // 用户昵称
+	Password              string     `json:"-" gorm:"column:password_hash;size:255"`       // 密码哈希（不返回给前端）
+	AvatarUrl             string     `json:"avatar_url" gorm:"column:avatar_url;size:500"` // 头像URL
+	IsAdmin               bool       `json:"is_admin" gorm:"default:false"`                // 是否管理员
+	WechatID              string     `json:"wechat_id" gorm:"size:64"`                     // 微信号
+	LastNicknameChangedAt *time.Time `json:"last_nickname_changed_at" gorm:"index"`        // 最后昵称修改时间
+	CreatedAt             time.Time  `json:"created_at" gorm:"autoCreateTime"`             // 创建时间
+	UpdatedAt             time.Time  `json:"updated_at" gorm:"autoUpdateTime"`             // 更新时间
 }
 
 // TableName 指定User模型对应的数据库表名
