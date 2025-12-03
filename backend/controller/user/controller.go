@@ -2,24 +2,17 @@
 // 负责处理用户相关的HTTP请求（注册、登录、个人信息管理等）
 package user
 
-import (
-	"github.com/gin-gonic/gin"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/common/errors"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/common/resp"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/model"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/repository"
-)
+import "github.com/gin-gonic/gin"
 
 // RegisterRoutes 注册用户模块的所有路由
 //
 // 路由列表（待完善）：
-//
-//	POST   /users/register         - 用户注册
-//	POST   /users/login            - 用户登录
-//	GET    /users/profile          - 获取个人信息（需要登录）
-//	PUT    /users/profile          - 更新个人信息（需要登录）
-//	PUT    /users/password         - 修改密码（需要登录）
-//	GET    /users/recent-views     - 最近浏览记录（需要登录）
+//   POST   /users/register         - 用户注册
+//   POST   /users/login            - 用户登录
+//   GET    /users/profile          - 获取个人信息（需要登录）
+//   PUT    /users/profile          - 更新个人信息（需要登录）
+//   PUT    /users/password         - 修改密码（需要登录）
+//   GET    /users/recent-views     - 最近浏览记录（需要登录）
 //
 // 参数：
 //   - rg: 父路由组，通常是 /api/v1
@@ -34,11 +27,11 @@ import (
 //     4. 处理和转换错误
 //
 // TODO: 完整实现步骤
-//  1. 创建UserController结构体，注入UserService依赖
-//  2. 实现各个Handler方法（Register、Login、GetProfile等）
-//  3. 在需要登录的路由上应用AuthMiddleware
-//  4. 使用validator验证请求参数
-//  5. 使用resp.Success/resp.Error返回统一响应
+//   1. 创建UserController结构体，注入UserService依赖
+//   2. 实现各个Handler方法（Register、Login、GetProfile等）
+//   3. 在需要登录的路由上应用AuthMiddleware
+//   4. 使用validator验证请求参数
+//   5. 使用resp.Success/resp.Error返回统一响应
 func RegisterRoutes(rg *gin.RouterGroup) {
 	// 创建用户路由组，前缀为 /users
 	// 最终路径为：/api/v1/users/*
@@ -101,46 +94,4 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 		//     authorized.GET("/recent-views", handleRecentViews)
 		// }
 	}
-}
-
-// RegisterRecentViewRoutes 注册最近浏览接口（需要登录）
-// GET /api/v1/users/recent-views
-// 从浏览记录与商品表联查，返回最近浏览商品卡片
-func RegisterRecentViewRoutes(rg *gin.RouterGroup, vr repository.ViewRecordRepository, pr repository.ProductRepository, auth gin.HandlerFunc) {
-	users := rg.Group("/users")
-	authorized := users.Group("")
-	authorized.Use(auth)
-	authorized.GET("/recent-views", func(c *gin.Context) {
-		uidVal, ok := c.Get("userID")
-		if !ok {
-			resp.Error(c, errors.CodeUnauthenticated, "未登录")
-			return
-		}
-		userID, ok := uidVal.(int64)
-		if !ok {
-			resp.Error(c, errors.CodeInvalidParams, "用户ID无效")
-			return
-		}
-
-		views, err := vr.ListRecentViews(c.Request.Context(), userID, 20)
-		if err != nil {
-			resp.Error(c, errors.CodeInternal, "查询浏览记录失败")
-			return
-		}
-		cards := make([]model.ProductCardDTO, 0, len(views))
-		for _, v := range views {
-			p, _, _, err := pr.GetByID(c.Request.Context(), v.ProductID)
-			if err == nil && p != nil {
-				cards = append(cards, model.ProductCardDTO{
-					ID:           p.ID,
-					Title:        p.Title,
-					Price:        p.Price,
-					MainImageUrl: p.MainImageURL,
-					Status:       p.Status,
-					CreatedAt:    p.CreatedAt,
-				})
-			}
-		}
-		resp.Success(c, gin.H{"items": cards})
-	})
 }

@@ -4,20 +4,12 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/yycy134679/school-secondhand-trading-system/backend/config"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/category"
-	homectl "github.com/yycy134679/school-secondhand-trading-system/backend/controller/home"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/product"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/tag"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/user"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/middleware"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/repository"
-	homeroute "github.com/yycy134679/school-secondhand-trading-system/backend/router/home"
-	categoryservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/category"
-	"github.com/yycy134679/school-secondhand-trading-system/backend/service/recommend"
-	tagservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/tag"
 )
 
 // SetupRouter 初始化并配置HTTP路由引擎
@@ -26,10 +18,11 @@ import (
 //   - 创建Gin引擎实例并注册默认中间件（Logger和Recovery）
 //   - 注册健康检查端点
 //   - 注册API v1版本的所有业务路由
-//   - 将数据库连接注入到各个模块（通过依赖注入）
+//   - 将数据库和Redis连接注入到各个模块（通过依赖注入）
 //
 // 参数：
 //   - db: GORM数据库连接实例，用于数据持久化操作
+//   - rdb: Redis客户端实例，用于缓存和状态管理
 //   - cfg: 应用配置对象，包含JWT密钥、文件存储路径等
 //
 // 返回值：
@@ -40,12 +33,10 @@ import (
 //	/health              - 健康检查端点（用于负载均衡器和监控）
 //	/api/v1/users/*      - 用户相关接口（注册、登录、个人信息等）
 //	/api/v1/products/*   - 商品相关接口（发布、搜索、详情等）
-//	/api/v1/categories/* - 分类管理接口
-//	/api/v1/tags/*       - 标签管理接口
+//	/api/v1/categories/* - 分类管理接口（待实现）
+//	/api/v1/tags/*       - 标签管理接口（待实现）
 //	/api/v1/admin/*      - 后台管理接口（待实现）
-//
-// 注意：推荐系统现在使用内存缓存，不再依赖Redis
-func SetupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
+func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 	// 创建Gin引擎实例
 	// gin.Default() 会自动附加两个中间件：
 	// 1. Logger() - 记录每个HTTP请求的日志（方法、路径、状态码、耗时等）
@@ -87,37 +78,11 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		// GET  /api/v1/products/my      - 我的发布
 		product.RegisterRoutes(api)
 
-		// 初始化分类和标签相关组件
-		// 创建仓库层实例
-		categoryRepo := repository.NewCategoryRepository(db)
-		tagRepo := repository.NewTagRepository(db)
-		// 推荐服务所需仓库
-		viewRecordRepo := repository.NewViewRecordRepository(db)
-		productRepo := repository.NewProductRepository(db)
-
-		// 创建服务层实例
-		categoryService := categoryservice.NewCategoryService(categoryRepo)
-		tagService := tagservice.NewTagService(tagRepo)
-
-		// 创建控制器实例
-		categoryController := category.NewCategoryController(categoryService)
-		tagController := tag.NewTagController(tagService)
-		homeController := homectl.NewHomeController(recommend.NewRecommendService(viewRecordRepo, productRepo))
-
-		// 创建管理员中间件
-		adminMiddleware := middleware.AdminMiddleware()
-
-		// 注册分类模块路由
-		RegisterCategoryRoutes(api, categoryController, adminMiddleware)
-
-		// 注册标签模块路由
-		RegisterTagRoutes(api, tagController, adminMiddleware)
-
-		// 注册首页模块路由（含推荐）
-		homeroute.RegisterHomeRoutes(api, homeController, middleware.AuthMiddleware())
-
-		// 注册最近浏览接口（用户模块补充）
-		user.RegisterRecentViewRoutes(api, viewRecordRepo, productRepo, middleware.AuthMiddleware())
+		// TODO: 注册其他模块路由
+		// category.RegisterRoutes(api)  - 分类管理
+		// tag.RegisterRoutes(api)       - 标签管理
+		// recommend.RegisterRoutes(api) - 推荐系统
+		// admin.RegisterRoutes(api)     - 后台管理
 	}
 
 	// 返回配置好的Gin引擎实例
