@@ -207,6 +207,7 @@ onMounted(() => {
       }
     }
   }
+
 }
 
 /* Category Navigation */

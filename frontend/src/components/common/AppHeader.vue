@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import LoginModal from '@/components/user/LoginModal.vue'
@@ -12,6 +12,27 @@ const userStore = useUserStore()
 const searchQuery = ref(route.query.q?.toString() || '')
 const showLoginModal = ref(false)
 const showRegisterModal = ref(false)
+const normalizeAdminBaseUrl = (urlValue: string | undefined) => {
+  const fallback = 'http://localhost:5174'
+  if (!urlValue) return fallback
+
+  const trimmed = urlValue.trim()
+  if (!trimmed) return fallback
+
+  if (/\/login\/?$/i.test(trimmed)) {
+    return trimmed.replace(/\/login\/?$/i, '') || fallback
+  }
+
+  if (/\/admin\/?$/i.test(trimmed)) {
+    return trimmed.replace(/\/admin\/?$/i, '') || fallback
+  }
+
+  return trimmed.replace(/\/+$/, '') || fallback
+}
+
+const adminBaseUrl = computed(() => normalizeAdminBaseUrl(import.meta.env.VITE_ADMIN_URL as string | undefined))
+
+const adminLoginUrl = computed(() => `${adminBaseUrl.value.replace(/\/+$/, '')}/login`)
 
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
@@ -44,6 +65,11 @@ const handleLoginSuccess = () => {
 
 const handleRegisterSuccess = () => {
   // Register modal handles closing itself and redirecting
+}
+
+const handleAdminEntry = () => {
+  if (typeof window === 'undefined') return
+  window.location.href = adminLoginUrl.value
 }
 
 const switchToRegister = () => {
@@ -92,6 +118,9 @@ const switchToLogin = () => {
       </div>
 
       <div class="actions">
+        <button type="button" class="btn admin-link" @click="handleAdminEntry">
+          进入后台
+        </button>
         <button class="btn btn-primary publish-btn" @click="handlePublish">发布闲置</button>
 
         <div v-if="userStore.isLoggedIn" class="user-menu">
@@ -210,6 +239,28 @@ const switchToLogin = () => {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.admin-link {
+  background: none;
+  padding: 6px 16px;
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
+  color: #1f2937;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: #f3f4f6;
+    color: var(--color-primary, #0066ff);
+  }
 }
 
 .publish-btn {
