@@ -52,6 +52,10 @@ func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	// 1. Logger() - 记录每个HTTP请求的日志（方法、路径、状态码、耗时等）
 	// 2. Recovery() - 捕获panic并返回500错误，防止服务器崩溃
 	r := gin.Default()
+	
+	// 注册CORS中间件，解决跨域问题
+	// 注意：在生产环境中，建议配置具体的允许来源，而不是使用通配符
+	r.Use(middleware.CORSMiddleware())
 
 	// 注册健康检查端点
 	// 用途：
