@@ -1,11 +1,12 @@
 // Package main 是应用程序的入口点
-// 负责初始化配置、数据库连接、Redis连接，并启动HTTP服务器
+// 负责初始化配置、数据库连接、内存缓存，并启动HTTP服务器
 package main
 
 import (
 	"fmt"
 	"log"
 
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/cache"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/config"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/router"
 )
@@ -14,7 +15,7 @@ import (
 // 执行流程：
 // 1. 加载配置（从.env文件或环境变量）
 // 2. 初始化数据库连接（PostgreSQL + GORM）
-// 3. 初始化Redis连接（可选，用于缓存和推荐系统）
+// 3. 初始化内存缓存服务（用于推荐系统和状态撤销）
 // 4. 设置路由和中间件
 // 5. 启动HTTP服务器
 func main() {
@@ -45,21 +46,17 @@ func main() {
 		log.Println("DB connection established successfully")
 	}
 
-	// 步骤3: 初始化Redis连接
-	// Redis用于：
+	// 步骤3: 初始化内存缓存服务
+	// 内存缓存用于：
 	// - 推荐系统的缓存
 	// - 商品状态变更的撤销记录（3秒窗口期）
-	// 如果RedisAddr为空，NewRedis会返回nil
-	rdb, err := config.NewRedis(cfg.RedisAddr)
-	if err != nil {
-		// Redis连接失败时打印警告，但不影响主要功能
-		log.Printf("warning: failed to init Redis: %v (continuing without Redis)", err)
-	}
+	memCache := cache.NewMemoryCache()
+	log.Println("Memory cache initialized successfully")
 
 	// 步骤4: 设置路由和中间件
 	// SetupRouter 会注册所有HTTP路由和中间件
 	// 包括：用户模块、商品模块、分类标签模块等
-	r := router.SetupRouter(db, rdb, cfg)
+	r := router.SetupRouter(db, memCache, cfg)
 
 	// 步骤5: 启动HTTP服务器
 	// 构造监听地址（例如：:8080）

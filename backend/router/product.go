@@ -12,11 +12,11 @@ func SetupProductRoutes(engine *gin.Engine, productController *product.ProductCo
 	// API路由组
 	api := engine.Group("/api/v1")
 
-	// 公开接口（无需认证）
+	// 公开接口（无需认证，但可选登录以记录浏览）
 	public := api.Group("/")
 	{
-		// 获取商品详情
-		public.GET("/products/:id", productController.GetProductDetail)
+		// 获取商品详情 - 使用可选认证中间件以便记录浏览
+		public.GET("/products/:id", middleware.OptionalAuthMiddleware(), productController.GetProductDetail)
 		// 搜索商品
 		public.GET("/products/search", productController.SearchProducts)
 		// 获取分类商品

@@ -4,13 +4,14 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/cache"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/config"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/admin"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/category"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/product"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/recommend"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/tag"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/user"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/middleware"
@@ -18,6 +19,7 @@ import (
 	adminservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/admin"
 	categoryservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/category"
 	productservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/product"
+	recommendservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/recommend"
 	tagservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/tag"
 	userservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/user"
 )
@@ -28,11 +30,11 @@ import (
 //   - 创建Gin引擎实例并注册默认中间件（Logger和Recovery）
 //   - 注册健康检查端点
 //   - 注册API v1版本的所有业务路由
-//   - 将数据库和Redis连接注入到各个模块（通过依赖注入）
+//   - 将数据库和内存缓存注入到各个模块（通过依赖注入）
 //
 // 参数：
 //   - db: GORM数据库连接实例，用于数据持久化操作
-//   - rdb: Redis客户端实例，用于缓存和状态管理
+//   - memCache: 内存缓存服务实例，用于缓存和状态管理
 //   - cfg: 应用配置对象，包含JWT密钥、文件存储路径等
 //
 // 返回值：
@@ -46,7 +48,7 @@ import (
 //	/api/v1/categories/* - 分类管理接口（待实现）
 //	/api/v1/tags/*       - 标签管理接口（待实现）
 //	/api/v1/admin/*      - 后台管理接口（待实现）
-func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
+func SetupRouter(db *gorm.DB, memCache *cache.MemoryCache, cfg *config.Config) *gin.Engine {
 	// 创建Gin引擎实例
 	// gin.Default() 会自动附加两个中间件：
 	// 1. Logger() - 记录每个HTTP请求的日志（方法、路径、状态码、耗时等）
@@ -102,6 +104,13 @@ func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		imageController := product.NewImageController(productService)
 		SetupProductRoutes(r, productController, imageController)
 
+		// 初始化推荐服务和浏览记录相关组件
+		viewRecordRepo := repository.NewViewRecordRepository(db)
+		productRepo := repository.NewProductRepository(db)
+		recommendService := recommendservice.NewRecommendService(viewRecordRepo, productRepo, db, nil) // Redis设为nil,可选
+		recommendController := recommend.NewRecommendController(recommendService)
+		SetupRecommendRoutes(r, recommendController)
+
 		// 初始化分类和标签相关组件
 		// 创建仓库层实例
 		categoryRepo := repository.NewCategoryRepository(db)
@@ -128,17 +137,13 @@ func SetupRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		// 创建服务层实例
 		adminService := adminservice.NewAdminService(db)
 
-		// 为管理后台创建专用的分类和标签控制器实例
-		adminCategoryController := admin.NewCategoryController(categoryService)
-		adminTagController := admin.NewTagController(tagService)
-
 		// 创建其他管理后台控制器实例
 		dashboardController := admin.NewDashboardController(adminService)
 		userController := admin.NewUserController(adminService)
 		adminProductController := admin.NewProductController(adminService)
 
-		// 注册管理后台路由
-		RegisterAdminRoutes(api, dashboardController, userController, adminProductController, adminCategoryController, adminTagController, adminMiddleware)
+		// 注册管理后台路由（不包括分类和标签，因为已经在上面注册了）
+		RegisterAdminRoutes(api, dashboardController, userController, adminProductController, adminMiddleware)
 	}
 
 	// 返回配置好的Gin引擎实例

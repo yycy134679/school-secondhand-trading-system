@@ -12,7 +12,7 @@ import (
 //
 // 功能说明：
 //   - 配置管理后台的路由组和中间件
-//   - 注册所有管理员接口
+//   - 注册所有管理员接口（不包括分类和标签，它们在各自的路由文件中注册）
 //   - 确保接口安全访问
 //
 // 参数：
@@ -20,15 +20,11 @@ import (
 //   - dashboardController: 仪表盘控制器实例
 //   - userController: 用户管理控制器实例
 //   - productController: 商品管理控制器实例
-//   - categoryController: 分类管理控制器实例
-//   - tagController: 标签管理控制器实例
 //   - adminMiddleware: 管理员权限验证中间件
 func RegisterAdminRoutes(api *gin.RouterGroup,
 	dashboardController *admin.DashboardController,
 	userController *admin.UserController,
 	productController *admin.ProductController,
-	categoryController *admin.CategoryController,
-	tagController *admin.TagController,
 	adminMiddleware gin.HandlerFunc) {
 	// 创建管理员路由组
 	// 路径前缀：/api/v1/admin
@@ -54,23 +50,5 @@ func RegisterAdminRoutes(api *gin.RouterGroup,
 	// PUT /api/v1/admin/products/:id - 更新商品信息
 	adminGroup.PUT("/products/:id", productController.UpdateProduct)
 
-	// 注册分类管理相关接口
-	// GET /api/v1/admin/categories - 获取分类列表
-	adminGroup.GET("/categories", categoryController.ListCategories)
-	// POST /api/v1/admin/categories - 创建分类
-	adminGroup.POST("/categories", categoryController.CreateCategory)
-	// PUT /api/v1/admin/categories/:id - 更新分类
-	adminGroup.PUT("/categories/:id", categoryController.UpdateCategory)
-	// DELETE /api/v1/admin/categories/:id - 删除分类
-	adminGroup.DELETE("/categories/:id", categoryController.DeleteCategory)
-
-	// 注册标签管理相关接口
-	// GET /api/v1/admin/tags - 获取标签列表
-	adminGroup.GET("/tags", tagController.ListTags)
-	// POST /api/v1/admin/tags - 创建标签
-	adminGroup.POST("/tags", tagController.CreateTag)
-	// PUT /api/v1/admin/tags/:id - 更新标签
-	adminGroup.PUT("/tags/:id", tagController.UpdateTag)
-	// DELETE /api/v1/admin/tags/:id - 删除标签
-	adminGroup.DELETE("/tags/:id", tagController.DeleteTag)
+	// 注意: 分类和标签的管理路由已在 SetupCategoryRoutes 和 SetupTagRoutes 中注册
 }

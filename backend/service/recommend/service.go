@@ -1,0 +1,291 @@
+package recommend
+
+import (
+	"context"
+	"time"
+
+	"gorm.io/gorm"
+
+	"github.com/yycy134679/school-secondhand-trading-system/backend/model"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/repository"
+)
+
+// RedisClient Redis客户端接口（用于解耦）
+type RedisClient interface {
+	Get(ctx context.Context, key string) (string, error)
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+}
+
+// RecommendService 推荐服务
+type RecommendService struct {
+	viewRecordRepo repository.ViewRecordRepository
+	productRepo    repository.ProductRepository
+	db             *gorm.DB
+	redis          RedisClient // 使用接口，可选
+}
+
+// NewRecommendService 创建推荐服务实例
+// redis 参数可以为 nil，此时不使用缓存功能
+func NewRecommendService(
+	viewRecordRepo repository.ViewRecordRepository,
+	productRepo repository.ProductRepository,
+	db *gorm.DB,
+	redis RedisClient,
+) *RecommendService {
+	return &RecommendService{
+		viewRecordRepo: viewRecordRepo,
+		productRepo:    productRepo,
+		db:             db,
+		redis:          redis,
+	}
+}
+
+// RecordView 记录浏览
+func (s *RecommendService) RecordView(ctx context.Context, userID, productID int64) error {
+	return s.viewRecordRepo.AddView(ctx, userID, productID)
+}
+
+// GetRecommendations 获取推荐商品
+// maxCount: 返回的最大推荐数量
+func (s *RecommendService) GetRecommendations(ctx context.Context, userID int64, maxCount int) ([]model.Product, error) {
+	// 注意：Redis 缓存功能已移除，始终计算推荐
+	// 如需启用缓存，请实现 RedisClient 接口并在初始化时传入
+
+	// 计算推荐
+	recommendations, err := s.calculateRecommendations(ctx, userID, maxCount)
+	if err != nil {
+		return nil, err
+	}
+
+	return recommendations, nil
+}
+
+// calculateRecommendations 计算推荐商品
+func (s *RecommendService) calculateRecommendations(ctx context.Context, userID int64, maxCount int) ([]model.Product, error) {
+	// 1. 获取用户最近浏览的商品(最多20条)
+	recentViews, err := s.viewRecordRepo.ListRecentViews(ctx, userID, 20)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(recentViews) == 0 {
+		// 没有浏览记录,返回空列表
+		return []model.Product{}, nil
+	}
+
+	// 2. 提取浏览过的商品ID
+	viewedProductIDs := make([]int64, len(recentViews))
+	for i, view := range recentViews {
+		viewedProductIDs[i] = view.ProductID
+	}
+
+	// 3. 统计这些商品的标签频次
+	type TagCount struct {
+		TagID int64
+		Count int
+	}
+	var tagCounts []TagCount
+
+	err = s.db.WithContext(ctx).
+		Table("product_tags").
+		Select("tag_id, COUNT(*) as count").
+		Where("product_id IN ?", viewedProductIDs).
+		Group("tag_id").
+		Order("count DESC").
+		Limit(10). // 取前10个最常见的标签
+		Scan(&tagCounts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tagCounts) == 0 {
+		// 浏览的商品都没有标签,返回空列表
+		return []model.Product{}, nil
+	}
+
+	// 4. 提取标签ID
+	tagIDs := make([]int64, len(tagCounts))
+	for i, tc := range tagCounts {
+		tagIDs[i] = tc.TagID
+	}
+
+	// 5. 查询包含这些标签的在售商品,排除用户自己发布的和已浏览的
+	var products []model.Product
+
+	subQuery := s.db.WithContext(ctx).
+		Table("product_tags").
+		Select("product_id, COUNT(*) as tag_match_count").
+		Where("tag_id IN ?", tagIDs).
+		Group("product_id").
+		Order("tag_match_count DESC")
+
+	err = s.db.WithContext(ctx).
+		Table("products").
+		Select("products.*").
+		Joins("INNER JOIN (?) AS pt ON products.id = pt.product_id", subQuery).
+		Where("products.status = ?", "ForSale").
+		Where("products.seller_id != ?", userID).
+		Where("products.id NOT IN ?", viewedProductIDs).
+		Order("pt.tag_match_count DESC, products.created_at DESC").
+		Limit(maxCount).
+		Find(&products).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
+
+// getProductsByIDs 根据ID列表获取商品
+func (s *RecommendService) getProductsByIDs(ctx context.Context, productIDs []int64) ([]model.Product, error) {
+	if len(productIDs) == 0 {
+		return []model.Product{}, nil
+	}
+
+	var products []model.Product
+	err := s.db.WithContext(ctx).
+		Where("id IN ? AND status = ?", productIDs, "ForSale").
+		Find(&products).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
+
+// HomeData 首页数据结构
+type HomeData struct {
+	Recommendations []model.ProductCardDTO `json:"recommendations"`
+	Latest          []model.ProductCardDTO `json:"latest"`
+	TotalCount      int64                  `json:"totalCount"`
+}
+
+// GetHomeData 获取首页数据
+func (s *RecommendService) GetHomeData(ctx context.Context, userID *int64, page, pageSize int) (*HomeData, error) {
+	var recommendations []model.Product
+	var recommendIDs []int64
+
+	// 如果用户已登录,获取推荐商品
+	if userID != nil {
+		var err error
+		recommendations, err = s.GetRecommendations(ctx, *userID, 10)
+		if err != nil {
+			return nil, err
+		}
+
+		// 提取推荐商品ID,用于排除
+		recommendIDs = make([]int64, len(recommendations))
+		for i, p := range recommendations {
+			recommendIDs[i] = p.ID
+		}
+	}
+
+	// 获取最新在售商品(排除推荐中已有的)
+	latestProducts, total, err := s.productRepo.ListLatestForSale(ctx, recommendIDs, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换为DTO
+	recommendDTOs := make([]model.ProductCardDTO, len(recommendations))
+	for i, p := range recommendations {
+		recommendDTOs[i] = s.toProductCardDTO(&p)
+	}
+
+	latestDTOs := make([]model.ProductCardDTO, len(latestProducts))
+	for i, p := range latestProducts {
+		latestDTOs[i] = s.toProductCardDTO(&p)
+	}
+
+	// 如果推荐数不足5条,用最新商品补充
+	if len(recommendDTOs) < 5 && len(latestDTOs) > 0 {
+		needed := 5 - len(recommendDTOs)
+		if needed > len(latestDTOs) {
+			needed = len(latestDTOs)
+		}
+		recommendDTOs = append(recommendDTOs, latestDTOs[:needed]...)
+		latestDTOs = latestDTOs[needed:]
+	}
+
+	return &HomeData{
+		Recommendations: recommendDTOs,
+		Latest:          latestDTOs,
+		TotalCount:      total,
+	}, nil
+}
+
+// toProductCardDTO 转换为ProductCardDTO
+func (s *RecommendService) toProductCardDTO(product *model.Product) model.ProductCardDTO {
+	// 获取主图URL
+	var mainImage string
+	s.db.Table("product_images").
+		Select("url").
+		Where("product_id = ? AND is_primary = ?", product.ID, true).
+		Limit(1).
+		Scan(&mainImage)
+
+	return model.ProductCardDTO{
+		ID:        product.ID,
+		Title:     product.Title,
+		Price:     product.Price,
+		MainImage: mainImage,
+		Status:    product.Status,
+	}
+}
+
+// RecentViewWithProduct 浏览记录带商品信息
+type RecentViewWithProduct struct {
+	ViewedAt time.Time            `json:"viewedAt"`
+	Product  model.ProductCardDTO `json:"product"`
+}
+
+// GetRecentViewsWithProducts 获取用户最近浏览记录并关联商品信息
+func (s *RecommendService) GetRecentViewsWithProducts(ctx context.Context, userID int64, limit int) ([]RecentViewWithProduct, error) {
+	// 获取浏览记录
+	views, err := s.viewRecordRepo.ListRecentViews(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(views) == 0 {
+		return []RecentViewWithProduct{}, nil
+	}
+
+	// 提取商品ID
+	productIDs := make([]int64, len(views))
+	for i, view := range views {
+		productIDs[i] = view.ProductID
+	}
+
+	// 获取商品信息
+	var products []model.Product
+	err = s.db.WithContext(ctx).
+		Where("id IN ?", productIDs).
+		Find(&products).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 构建商品ID到商品的映射
+	productMap := make(map[int64]*model.Product)
+	for i := range products {
+		productMap[products[i].ID] = &products[i]
+	}
+
+	// 组装结果
+	result := make([]RecentViewWithProduct, 0, len(views))
+	for _, view := range views {
+		if product, exists := productMap[view.ProductID]; exists {
+			result = append(result, RecentViewWithProduct{
+				ViewedAt: view.ViewedAt,
+				Product:  s.toProductCardDTO(product),
+			})
+		}
+	}
+
+	return result, nil
+}
