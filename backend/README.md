@@ -1,6 +1,6 @@
 # Backend (Go) — 快速启动
 
-说明：这是为 `backend/` 目录初始化的 Go 后端服务，使用 Gin 框架，支持 GORM（PostgreSQL）、Redis、JWT、Viper 配置管理等。
+说明：这是为 `backend/` 目录初始化的 Go 后端服务，使用 Gin 框架，支持 GORM（PostgreSQL）、内存缓存、JWT、Viper 配置管理等。
 
 假设与说明
 - Module 路径：`github.com/yycy134679/school-secondhand-trading-system/backend`
@@ -17,8 +17,7 @@
    - 创建数据库：`CREATE DATABASE secondhand_dev;`
    - 在 `.env` 中配置 `DB_DSN`（见下）
 
-3. **配置 Redis（可选）**
-   - 若使用推荐/缓存功能，在 `.env` 中配置 `REDIS_ADDR`
+注意：本项目已移除 Redis 依赖，改为使用内存缓存实现推荐系统和状态撤销功能
 
 ## 快速启动（Windows PowerShell）
 

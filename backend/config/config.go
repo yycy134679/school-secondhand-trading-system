@@ -14,7 +14,6 @@ type Config struct {
 	AppEnv         string // 应用环境：development/production
 	HTTPPort       int    // HTTP服务器监听端口，默认8080
 	DBDSN          string // 数据库连接字符串（PostgreSQL）
-	RedisAddr      string // Redis服务器地址，格式：host:port
 	JWTSecret      string // JWT签名密钥，用于token的生成和验证
 	FileStorageDir string // 文件上传存储目录，用于保存商品图片等
 }
@@ -58,7 +57,6 @@ func LoadConfig() (*Config, error) {
 	v.SetDefault("APP_ENV", "development")           // 默认开发环境
 	v.SetDefault("HTTP_PORT", 8080)                  // 默认端口8080
 	v.SetDefault("DB_DSN", "")                       // 默认无数据库连接
-	v.SetDefault("REDIS_ADDR", "")                   // 默认无Redis连接
 	v.SetDefault("JWT_SECRET", "please-change-this") // 默认JWT密钥（生产环境必须修改）
 	v.SetDefault("FILE_STORAGE_DIR", "./uploads")    // 默认文件存储目录
 
@@ -67,7 +65,6 @@ func LoadConfig() (*Config, error) {
 		AppEnv:         v.GetString("APP_ENV"),
 		HTTPPort:       v.GetInt("HTTP_PORT"),
 		DBDSN:          v.GetString("DB_DSN"),
-		RedisAddr:      v.GetString("REDIS_ADDR"),
 		JWTSecret:      v.GetString("JWT_SECRET"),
 		FileStorageDir: v.GetString("FILE_STORAGE_DIR"),
 	}
