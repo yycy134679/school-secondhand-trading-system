@@ -12,6 +12,7 @@ import (
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/admin"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/category"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/product"
+	productconditioncontroller "github.com/yycy134679/school-secondhand-trading-system/backend/controller/product_condition"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/recommend"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/tag"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/upload"
@@ -21,6 +22,7 @@ import (
 	adminservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/admin"
 	categoryservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/category"
 	productservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/product"
+	productconditionservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/product_condition"
 	recommendservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/recommend"
 	tagservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/tag"
 	userservice "github.com/yycy134679/school-secondhand-trading-system/backend/service/user"
@@ -87,6 +89,7 @@ func SetupRouter(db *gorm.DB, memCache *cache.MemoryCache, cfg *config.Config) *
 		// 初始化用户相关组件
 		// 创建用户仓库实例
 		userRepo := repository.NewUserRepository(db)
+		productRepo := repository.NewProductRepository(db)
 		// 创建用户服务实例
 		userService := userservice.NewUserService(userRepo)
 
@@ -111,36 +114,41 @@ func SetupRouter(db *gorm.DB, memCache *cache.MemoryCache, cfg *config.Config) *
 		// GET  /api/v1/products/search  - 搜索商品
 		// GET  /api/v1/products/my      - 我的发布
 		// 创建商品相关组件
-		productService := productservice.NewProductService()
+		productService := productservice.NewProductService(db, productRepo, userRepo, memCache)
 		productController := product.NewProductController(productService)
 		imageController := product.NewImageController(productService)
 		SetupProductRoutes(r, productController, imageController)
 
 		// 初始化推荐服务和浏览记录相关组件
 		viewRecordRepo := repository.NewViewRecordRepository(db)
-		productRepo := repository.NewProductRepository(db)
 		recommendService := recommendservice.NewRecommendService(viewRecordRepo, productRepo, db, nil) // Redis设为nil,可选
 		recommendController := recommend.NewRecommendController(recommendService)
 		SetupRecommendRoutes(r, recommendController)
 
-		// 初始化分类和标签相关组件
+		// 初始化分类、标签、新旧程度相关组件
 		// 创建仓库层实例
 		categoryRepo := repository.NewCategoryRepository(db)
 		tagRepo := repository.NewTagRepository(db)
+		productConditionRepo := repository.NewProductConditionRepository(db)
 
 		// 创建服务层实例
 		categoryService := categoryservice.NewCategoryService(categoryRepo)
 		tagService := tagservice.NewTagService(tagRepo)
+		productConditionService := productconditionservice.NewService(productConditionRepo)
 
 		// 创建控制器实例
 		categoryController := category.NewCategoryController(categoryService)
 		tagController := tag.NewTagController(tagService)
+		productConditionController := productconditioncontroller.NewController(productConditionService)
 
 		// 创建管理员中间件
 		adminMiddleware := middleware.AdminMiddleware()
 
 		// 注册分类模块路由
 		SetupCategoryRoutes(r, categoryController)
+
+		// 注册新旧程度路由
+		SetupProductConditionRoutes(r, productConditionController)
 
 		// 注册标签模块路由
 		SetupTagRoutes(r, tagController)

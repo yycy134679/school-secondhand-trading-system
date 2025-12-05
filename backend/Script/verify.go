@@ -127,7 +127,7 @@ func VerifyService() []VerifyResult {
 	}
 
 	// 检查ProductService方法
-	productService := productservice.NewProductService()
+	productService := productservice.NewProductService(nil, nil, nil, nil)
 	productServiceType := reflect.TypeOf(productService)
 	requiredProductServiceMethods := []string{
 		"CreateProduct",
@@ -164,26 +164,26 @@ func VerifyService() []VerifyResult {
 // VerifyController 验证控制器层实现
 func VerifyController() []VerifyResult {
 	var results []VerifyResult
-	
+
 	fmt.Println("验证控制器层实现...")
-	
+
 	// 检查UserController - user包使用路由注册模式，没有传统控制器结构体
 	// 检查RegisterRoutes函数是否存在
 	userRegisterRoutesType := reflect.ValueOf(user.RegisterRoutes).Type()
 	if userRegisterRoutesType.Kind() != reflect.Func {
 		results = append(results, VerifyResult{
-			Module:   "UserController",
-			Status:   false,
-			Message:  "缺少RegisterRoutes函数",
+			Module:  "UserController",
+			Status:  false,
+			Message: "缺少RegisterRoutes函数",
 		})
 	} else {
 		results = append(results, VerifyResult{
-			Module:   "UserController",
-			Status:   true,
-			Message:  "路由注册函数实现完整",
+			Module:  "UserController",
+			Status:  true,
+			Message: "路由注册函数实现完整",
 		})
 	}
-	
+
 	// 检查ProductController
 	productController := product.NewProductController(nil)
 	productControllerType := reflect.TypeOf(productController)
@@ -197,25 +197,25 @@ func VerifyController() []VerifyResult {
 		"UndoLastStatusChange",
 		"GetProductsByCategory",
 	}
-	
+
 	for _, method := range requiredProductControllerMethods {
 		if _, exists := productControllerType.MethodByName(method); !exists {
 			results = append(results, VerifyResult{
-				Module:   "ProductController",
-				Status:   false,
-				Message:  fmt.Sprintf("缺少方法: %s", method),
+				Module:  "ProductController",
+				Status:  false,
+				Message: fmt.Sprintf("缺少方法: %s", method),
 			})
 		}
 	}
-	
+
 	if len(results) == 1 && results[0].Module == "UserController" {
 		results = append(results, VerifyResult{
-			Module:   "ProductController",
-			Status:   true,
-			Message:  "所有方法实现完整",
+			Module:  "ProductController",
+			Status:  true,
+			Message: "所有方法实现完整",
 		})
 	}
-	
+
 	// 检查CategoryController
 	categoryController := categorycontroller.NewCategoryController(nil)
 	categoryControllerType := reflect.TypeOf(categoryController)
@@ -225,25 +225,25 @@ func VerifyController() []VerifyResult {
 		"UpdateCategory",
 		"DeleteCategory",
 	}
-	
+
 	for _, method := range requiredCategoryControllerMethods {
 		if _, exists := categoryControllerType.MethodByName(method); !exists {
 			results = append(results, VerifyResult{
-				Module:   "CategoryController",
-				Status:   false,
-				Message:  fmt.Sprintf("缺少方法: %s", method),
+				Module:  "CategoryController",
+				Status:  false,
+				Message: fmt.Sprintf("缺少方法: %s", method),
 			})
 		}
 	}
-	
+
 	if len(results) == 2 && results[1].Module == "ProductController" {
 		results = append(results, VerifyResult{
-			Module:   "CategoryController",
-			Status:   true,
-			Message:  "所有方法实现完整",
+			Module:  "CategoryController",
+			Status:  true,
+			Message: "所有方法实现完整",
 		})
 	}
-	
+
 	return results
 }
 

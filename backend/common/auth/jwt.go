@@ -3,6 +3,8 @@
 package auth
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -162,5 +164,49 @@ func ParseToken(token string) (int64, error) {
 	// isAdmin := claims["isAdmin"].(bool)
 	//
 	// return userID, isAdmin, nil
-	return 0, nil
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+
+		jwtSecret := "please-change-this"
+		if cfg, err := config.LoadConfig(); err == nil {
+			jwtSecret = cfg.JWTSecret
+		}
+		return []byte(jwtSecret), nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok || !parsedToken.Valid {
+		return 0, fmt.Errorf("invalid token")
+	}
+
+	// 校验过期时间
+	if expValue, ok := claims["exp"]; ok {
+		switch exp := expValue.(type) {
+		case float64:
+			if time.Unix(int64(exp), 0).Before(time.Now()) {
+				return 0, errors.New("token expired")
+			}
+		case int64:
+			if time.Unix(exp, 0).Before(time.Now()) {
+				return 0, errors.New("token expired")
+			}
+		}
+	}
+
+	userIDValue, ok := claims["user_id"]
+	if !ok {
+		return 0, fmt.Errorf("user_id not found in token")
+	}
+
+	userIDFloat, ok := userIDValue.(float64)
+	if !ok {
+		return 0, fmt.Errorf("invalid user_id type")
+	}
+
+	return int64(userIDFloat), nil
 }

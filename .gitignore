@@ -14,3 +14,7 @@ yarn-error.log*
 # 忽略编辑器/系统文件
 .vscode/
 .DS_Store
+
+# 忽略缓存和配置目录
+.cache/
+.claude/

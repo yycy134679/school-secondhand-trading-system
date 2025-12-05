@@ -77,8 +77,15 @@ export const useProductStore = defineStore('product', () => {
     searchParams.value = params
     try {
       const res = await searchProductsApi(params)
-      searchResults.value = res.data.data
-      return res.data.data
+      const data = res.data.data ?? {
+        items: [],
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        total: 0,
+      }
+
+      searchResults.value = data
+      return data
     } catch (error) {
       console.error('Failed to search products:', error)
       throw error
@@ -88,7 +95,12 @@ export const useProductStore = defineStore('product', () => {
   async function fetchCategoryProducts(categoryId: number, params: ProductSearchParams) {
     try {
       const res = await getProductsByCategoryApi(categoryId, params)
-      return res.data.data
+      return res.data.data ?? {
+        items: [],
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        total: 0,
+      }
     } catch (error) {
       console.error('Failed to fetch category products:', error)
       throw error
@@ -98,7 +110,12 @@ export const useProductStore = defineStore('product', () => {
   async function fetchMyProducts(params: { keyword?: string; page?: number; pageSize?: number }) {
     try {
       const res = await getMyProductsApi(params)
-      return res.data.data
+      return res.data.data ?? {
+        items: [],
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        total: 0,
+      }
     } catch (error) {
       console.error('Failed to fetch my products:', error)
       throw error

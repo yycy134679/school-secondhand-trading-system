@@ -131,23 +131,29 @@ const handleSubmit = () => {
 
     <div class="form-group">
       <label class="label">新旧程度</label>
-      <div class="radio-group">
-        <label v-for="cond in appStore.productConditions" :key="cond.id" class="radio-label">
-          <input type="radio" :value="cond.id" v-model="form.conditionId" />
+      <select v-model="form.conditionId" class="select" :class="{ error: errors.conditionId }">
+        <option :value="undefined" disabled>请选择新旧程度</option>
+        <option v-for="cond in appStore.productConditions" :key="cond.id" :value="cond.id">
           {{ cond.name }}
-        </label>
-      </div>
+        </option>
+      </select>
       <span class="error-text" v-if="errors.conditionId">{{ errors.conditionId }}</span>
     </div>
 
     <div class="form-group">
       <label class="label">标签</label>
-      <div class="checkbox-group">
-        <label v-for="tag in appStore.tags" :key="tag.id" class="checkbox-label">
-          <input type="checkbox" :value="tag.id" v-model="form.tagIds" />
+      <select
+        v-model="form.tagIds"
+        multiple
+        class="select multiple"
+        :class="{ error: errors.tagIds }"
+        size="5"
+      >
+        <option v-for="tag in appStore.tags" :key="tag.id" :value="tag.id">
           {{ tag.name }}
-        </label>
-      </div>
+        </option>
+      </select>
+      <span class="helper-text">按住 Ctrl / Cmd 可多选</span>
     </div>
 
     <div class="form-group">
@@ -223,20 +229,16 @@ const handleSubmit = () => {
       color: var(--color-error, #ff4d4f);
     }
 
-    .radio-group,
-    .checkbox-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
+    .select.multiple {
+      min-height: 140px;
+      padding: 8px;
+    }
 
-      .radio-label,
-      .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        cursor: pointer;
-        font-size: 14px;
-      }
+    .helper-text {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #888;
     }
   }
 
