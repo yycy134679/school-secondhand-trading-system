@@ -7,12 +7,14 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/yycy134679/school-secondhand-trading-system/backend/common/cache"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/util"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/config"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/admin"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/category"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/product"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/recommend"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/tag"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/upload"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/controller/user"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/middleware"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/repository"
@@ -54,10 +56,16 @@ func SetupRouter(db *gorm.DB, memCache *cache.MemoryCache, cfg *config.Config) *
 	// 1. Logger() - 记录每个HTTP请求的日志（方法、路径、状态码、耗时等）
 	// 2. Recovery() - 捕获panic并返回500错误，防止服务器崩溃
 	r := gin.Default()
-	
+
+	// 同步文件存储目录配置，确保静态托管与保存路径一致
+	util.FileStorageDir = cfg.FileStorageDir
+
 	// 注册CORS中间件，解决跨域问题
 	// 注意：在生产环境中，建议配置具体的允许来源，而不是使用通配符
 	r.Use(middleware.CORSMiddleware())
+
+	// 静态托管上传目录，确保返回的上传 URL 可直接访问
+	r.Static("/uploads", util.FileStorageDir)
 
 	// 注册健康检查端点
 	// 用途：
@@ -90,6 +98,10 @@ func SetupRouter(db *gorm.DB, memCache *cache.MemoryCache, cfg *config.Config) *
 		// PUT  /api/v1/users/profile   - 更新个人信息
 		// PUT  /api/v1/users/password  - 修改密码
 		user.RegisterRoutes(api, userService)
+
+		// 通用上传接口
+		uploadController := upload.NewUploadController()
+		api.POST("/upload", middleware.AuthMiddleware(), uploadController.UploadImage)
 
 		// 注册商品模块路由
 		// 包含的接口（示例）：
