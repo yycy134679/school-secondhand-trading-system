@@ -42,10 +42,6 @@ dist/
 build/
 bin/
 
-# Uploaded files (typically should not be committed)
-uploads/
-!uploads/.gitkeep
-
 # Log files
 *.log
 logs/
