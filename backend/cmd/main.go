@@ -38,13 +38,12 @@ func main() {
 	// 如果DSN为空字符串，NewDB会返回nil（允许在没有数据库的情况下运行）
 	db, err := config.NewDB(cfg.DBDSN)
 	if err != nil {
-		// 数据库连接失败时，打印警告但不退出程序
-		// 这允许在本地开发时即使没有数据库也能启动服务器
-		log.Printf("warning: failed to init DB: %v (continuing without DB)", err)
-	} else {
-		// 数据库连接成功
-		log.Println("DB connection established successfully")
+		log.Fatalf("failed to init DB, please check DB_DSN/network: %v", err)
 	}
+	if db == nil {
+		log.Fatalf("DB is nil, please set a valid DB_DSN (current: %s)", cfg.DBDSN)
+	}
+	log.Println("DB connection established successfully")
 
 	// 步骤3: 初始化内存缓存服务
 	// 内存缓存用于：

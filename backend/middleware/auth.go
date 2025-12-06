@@ -1,36 +1,72 @@
 package middleware
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/gin-gonic/gin"
+
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/auth"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/errors"
+	"github.com/yycy134679/school-secondhand-trading-system/backend/common/resp"
 )
 
-// AuthMiddleware 认证中间件
+// AuthMiddleware 验证请求中的 JWT，失败则返回未登录错误
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 这里是简化的认证逻辑，实际项目中需要实现完整的JWT验证等
-		// 暂时模拟一个已登录的用户
-		c.Set("user_id", "1")
+		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+		if authHeader == "" {
+			resp.Error(c, errors.CodeUnauthenticated, "请先登录")
+			c.Abort()
+			return
+		}
+
+		token := authHeader
+		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+			token = strings.TrimSpace(authHeader[7:])
+		}
+		if token == "" {
+			resp.Error(c, errors.CodeUnauthenticated, "请先登录")
+			c.Abort()
+			return
+		}
+
+		userID, err := auth.ParseToken(token)
+		if err != nil {
+			resp.Error(c, errors.CodeUnauthenticated, "登录已过期，请重新登录")
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", strconv.FormatInt(userID, 10))
 		c.Set("role", "user")
 		c.Next()
 	}
 }
 
-// OptionalAuthMiddleware 可选的认证中间件
-// 如果有token则验证并设置用户信息，没有token则继续执行但不设置用户信息
+// OptionalAuthMiddleware 允许匿名访问，有 token 则解析并注入用户信息
 func OptionalAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 尝试从Header获取token
-		token := c.GetHeader("Authorization")
+		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+		if authHeader == "" {
+			c.Next()
+			return
+		}
 
-		// 如果有token，则验证并设置用户信息
-		// 这里是简化的逻辑，实际项目中需要实现完整的JWT验证
-		if token != "" {
-			// 模拟验证成功，设置用户ID
-			c.Set("user_id", "1")
+		token := authHeader
+		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+			token = strings.TrimSpace(authHeader[7:])
+		}
+		if token == "" {
+			c.Next()
+			return
+		}
+
+		if userID, err := auth.ParseToken(token); err == nil {
+			c.Set("user_id", strconv.FormatInt(userID, 10))
 			c.Set("role", "user")
 		}
 
-		// 无论是否有token都继续执行
 		c.Next()
 	}
 }

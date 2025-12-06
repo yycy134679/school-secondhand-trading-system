@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getHomeData } from '@/api/home'
+import type { HomeData, HomeProduct } from '@/api/home'
 import {
   searchProducts as searchProductsApi,
   getProductsByCategory as getProductsByCategoryApi,
@@ -24,11 +25,48 @@ export const useProductStore = defineStore('product', () => {
   // Current Product Detail
   const currentProduct = ref<ProductDetail | null>(null)
 
+  const normalizeHomeProduct = (item: HomeProduct): Product => ({
+    id: item.id,
+    title: item.title,
+    description: item.description ?? '',
+    price: item.price,
+    mainImageUrl: item.mainImageUrl ?? item.mainImage ?? '',
+    status: item.status,
+    conditionId: item.conditionId ?? 0,
+    sellerId: item.sellerId ?? 0,
+    categoryId: item.categoryId ?? 0,
+    createdAt: item.createdAt ?? '',
+    updatedAt: item.updatedAt ?? '',
+  })
+
+  const toPageResult = (
+    items: HomeProduct[],
+    page: number,
+    pageSizeValue: number,
+    total: number,
+  ): PageResult<Product> => ({
+    items: items.map(normalizeHomeProduct),
+    page,
+    pageSize: pageSizeValue,
+    total,
+  })
+
   async function fetchHomeData(params?: { page?: number; pageSize?: number }) {
+    const page = params?.page ?? 1
+    const pageSizeValue = params?.pageSize ?? 20
+
     try {
-      const res = await getHomeData(params)
-      homeRecommendations.value = res.data.data.recommendations
-      homeLatest.value = res.data.data.latest
+      const res = await getHomeData({ page, pageSize: pageSizeValue })
+      const data: HomeData =
+        res.data.data ?? ({ recommendations: [], latest: [], totalCount: 0 } as HomeData)
+
+      homeRecommendations.value = (data.recommendations ?? []).map(normalizeHomeProduct)
+      homeLatest.value = toPageResult(
+        data.latest ?? [],
+        page,
+        pageSizeValue,
+        data.totalCount ?? data.latest?.length ?? 0,
+      )
     } catch (error) {
       console.error('Failed to fetch home data:', error)
       throw error
@@ -39,8 +77,15 @@ export const useProductStore = defineStore('product', () => {
     searchParams.value = params
     try {
       const res = await searchProductsApi(params)
-      searchResults.value = res.data.data
-      return res.data.data
+      const data = res.data.data ?? {
+        items: [],
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        total: 0,
+      }
+
+      searchResults.value = data
+      return data
     } catch (error) {
       console.error('Failed to search products:', error)
       throw error
@@ -50,7 +95,12 @@ export const useProductStore = defineStore('product', () => {
   async function fetchCategoryProducts(categoryId: number, params: ProductSearchParams) {
     try {
       const res = await getProductsByCategoryApi(categoryId, params)
-      return res.data.data
+      return res.data.data ?? {
+        items: [],
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        total: 0,
+      }
     } catch (error) {
       console.error('Failed to fetch category products:', error)
       throw error
@@ -60,7 +110,12 @@ export const useProductStore = defineStore('product', () => {
   async function fetchMyProducts(params: { keyword?: string; page?: number; pageSize?: number }) {
     try {
       const res = await getMyProductsApi(params)
-      return res.data.data
+      return res.data.data ?? {
+        items: [],
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        total: 0,
+      }
     } catch (error) {
       console.error('Failed to fetch my products:', error)
       throw error

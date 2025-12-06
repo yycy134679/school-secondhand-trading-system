@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import ProductImageUpload, { type UploadImage } from './ProductImageUpload.vue'
 
@@ -48,6 +48,30 @@ onMounted(() => {
   }
 })
 
+const filteredTags = computed(() => {
+  if (!form.categoryId) {
+    return []
+  }
+
+  return appStore.tags.filter((tag) => tag.categoryId === form.categoryId)
+})
+
+watch(
+  filteredTags,
+  (tags) => {
+    if (!form.categoryId) {
+      form.tagIds = []
+      return
+    }
+    if (appStore.tags.length === 0) {
+      return
+    }
+    const validIds = tags.map((tag) => tag.id)
+    form.tagIds = form.tagIds.filter((id) => validIds.includes(id))
+  },
+  { immediate: true },
+)
+
 const validate = (): boolean => {
   let isValid = true
   errors.title = ''
@@ -83,6 +107,15 @@ const validate = (): boolean => {
   }
 
   return isValid
+}
+
+const toggleTag = (tagId: number) => {
+  const index = form.tagIds.indexOf(tagId)
+  if (index > -1) {
+    form.tagIds.splice(index, 1)
+  } else {
+    form.tagIds.push(tagId)
+  }
 }
 
 const handleSubmit = () => {
@@ -130,24 +163,32 @@ const handleSubmit = () => {
     </div>
 
     <div class="form-group">
-      <label class="label">新旧程度</label>
-      <div class="radio-group">
-        <label v-for="cond in appStore.productConditions" :key="cond.id" class="radio-label">
-          <input type="radio" :value="cond.id" v-model="form.conditionId" />
-          {{ cond.name }}
-        </label>
+      <label class="label">标签</label>
+      <div class="tags-container" :class="{ disabled: !form.categoryId }">
+        <div v-if="!form.categoryId" class="empty-text">请先选择分类</div>
+        <div v-else-if="filteredTags.length === 0" class="empty-text">该分类暂无可选标签</div>
+        <div
+          v-else
+          v-for="tag in filteredTags"
+          :key="tag.id"
+          class="tag-item"
+          :class="{ active: form.tagIds.includes(tag.id) }"
+          @click="toggleTag(tag.id)"
+        >
+          {{ tag.name }}
+        </div>
       </div>
-      <span class="error-text" v-if="errors.conditionId">{{ errors.conditionId }}</span>
     </div>
 
     <div class="form-group">
-      <label class="label">标签</label>
-      <div class="checkbox-group">
-        <label v-for="tag in appStore.tags" :key="tag.id" class="checkbox-label">
-          <input type="checkbox" :value="tag.id" v-model="form.tagIds" />
-          {{ tag.name }}
-        </label>
-      </div>
+      <label class="label">新旧程度</label>
+      <select v-model="form.conditionId" class="select" :class="{ error: errors.conditionId }">
+        <option :value="undefined" disabled>请选择新旧程度</option>
+        <option v-for="cond in appStore.productConditions" :key="cond.id" :value="cond.id">
+          {{ cond.name }}
+        </option>
+      </select>
+      <span class="error-text" v-if="errors.conditionId">{{ errors.conditionId }}</span>
     </div>
 
     <div class="form-group">
@@ -223,19 +264,46 @@ const handleSubmit = () => {
       color: var(--color-error, #ff4d4f);
     }
 
-    .radio-group,
-    .checkbox-group {
+    .tags-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 8px;
+      padding: 4px 0;
 
-      .radio-label,
-      .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        cursor: pointer;
+      &.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .empty-text {
         font-size: 14px;
+        color: #999;
+        padding: 8px 0;
+      }
+
+      .tag-item {
+        padding: 6px 16px;
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 20px;
+        font-size: 14px;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+
+        &:hover {
+          background-color: #e6f7ff;
+          border-color: #91d5ff;
+          color: #1890ff;
+        }
+
+        &.active {
+          background-color: #e6f7ff;
+          border-color: #1890ff;
+          color: #1890ff;
+          font-weight: 500;
+        }
       }
     }
   }

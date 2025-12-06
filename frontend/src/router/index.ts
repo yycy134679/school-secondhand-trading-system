@@ -70,8 +70,12 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
+
+  if (userStore.isLoggedIn && !userStore.currentUser) {
+    await userStore.fetchProfile()
+  }
 
   // 设置页面标题
   if (to.meta.title) {

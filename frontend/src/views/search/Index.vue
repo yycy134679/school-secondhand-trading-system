@@ -232,7 +232,7 @@ const loadProducts = async () => {
   loading.value = true
   try {
     const params = {
-      q: keyword.value || undefined,
+      keyword: keyword.value || undefined,
       sort: filters.value.sort,
       minPrice: filters.value.minPrice,
       maxPrice: filters.value.maxPrice,

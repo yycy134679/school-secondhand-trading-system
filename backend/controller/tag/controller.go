@@ -59,7 +59,8 @@ func (tc *TagController) CreateTag(c *gin.Context) {
 
 	// 创建标签模型
 	tag := &model.Tag{
-		Name: req.Name,
+		Name:       req.Name,
+		CategoryID: req.CategoryID,
 	}
 
 	// 调用服务层创建标签
@@ -100,8 +101,9 @@ func (tc *TagController) UpdateTag(c *gin.Context) {
 
 	// 创建标签模型
 	tag := &model.Tag{
-		ID:   id,
-		Name: req.Name,
+		ID:         id,
+		Name:       req.Name,
+		CategoryID: req.CategoryID,
 	}
 
 	// 调用服务层更新标签
@@ -149,10 +151,12 @@ func (tc *TagController) DeleteTag(c *gin.Context) {
 
 // TagCreateRequest 标签创建请求
 type TagCreateRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=50"`
+	Name       string `json:"name" binding:"required,min=1,max=50"`
+	CategoryID int64  `json:"categoryId" binding:"required,gt=0"`
 }
 
 // TagUpdateRequest 标签更新请求
 type TagUpdateRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=50"`
+	Name       string `json:"name" binding:"required,min=1,max=50"`
+	CategoryID int64  `json:"categoryId" binding:"required,gt=0"`
 }

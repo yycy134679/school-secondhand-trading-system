@@ -16,15 +16,43 @@ export const useAppStore = defineStore('app', () => {
 
   async function initDictionaries() {
     loading.value = true
+    error.value = null
     try {
-      const [categoriesRes, tagsRes, conditionsRes] = await Promise.all([
+      const [categoriesRes, tagsRes, conditionsRes] = await Promise.allSettled([
         getCategories(),
         getTags(),
         getProductConditions(),
       ])
-      categories.value = categoriesRes.data.data
-      tags.value = tagsRes.data.data
-      productConditions.value = conditionsRes.data.data
+      const errors: string[] = []
+
+      if (categoriesRes.status === 'fulfilled') {
+        categories.value = categoriesRes.value.data.data
+      } else {
+        errors.push('分类加载失败')
+        console.error('Failed to load categories:', categoriesRes.reason)
+      }
+
+      if (tagsRes.status === 'fulfilled') {
+        // 兼容后端字段命名，确保存在 categoryId 便于前端筛选
+        tags.value = tagsRes.value.data.data.map((tag) => ({
+          ...tag,
+          categoryId: tag.categoryId ?? (tag as unknown as { category_id?: number }).category_id,
+        }))
+      } else {
+        errors.push('标签加载失败')
+        console.error('Failed to load tags:', tagsRes.reason)
+      }
+
+      if (conditionsRes.status === 'fulfilled') {
+        productConditions.value = conditionsRes.value.data.data
+      } else {
+        errors.push('新旧程度加载失败')
+        console.error('Failed to load product conditions:', conditionsRes.reason)
+      }
+
+      if (errors.length > 0) {
+        error.value = errors.join('；')
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load dictionaries'
       error.value = message

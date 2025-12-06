@@ -30,7 +30,9 @@ const normalizeAdminBaseUrl = (urlValue: string | undefined) => {
   return trimmed.replace(/\/+$/, '') || fallback
 }
 
-const adminBaseUrl = computed(() => normalizeAdminBaseUrl(import.meta.env.VITE_ADMIN_URL as string | undefined))
+const adminBaseUrl = computed(() =>
+  normalizeAdminBaseUrl(import.meta.env.VITE_ADMIN_URL as string | undefined),
+)
 
 const adminLoginUrl = computed(() => `${adminBaseUrl.value.replace(/\/+$/, '')}/login`)
 
@@ -118,9 +120,7 @@ const switchToLogin = () => {
       </div>
 
       <div class="actions">
-        <button type="button" class="btn admin-link" @click="handleAdminEntry">
-          进入后台
-        </button>
+        <button type="button" class="btn admin-link" @click="handleAdminEntry">进入后台</button>
         <button class="btn btn-primary publish-btn" @click="handlePublish">发布闲置</button>
 
         <div v-if="userStore.isLoggedIn" class="user-menu">
@@ -255,7 +255,9 @@ const switchToLogin = () => {
   align-items: center;
   justify-content: center;
   line-height: 1;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
     background-color: #f3f4f6;
@@ -294,7 +296,6 @@ const switchToLogin = () => {
 .user-menu {
   position: relative;
   cursor: pointer;
-  padding: 4px;
 
   &:hover .dropdown-menu {
     display: block;
@@ -327,6 +328,15 @@ const switchToLogin = () => {
   padding: 8px 0;
   margin-top: 8px;
   border: 1px solid #e5e7eb;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+  }
 }
 
 .user-name {

@@ -46,77 +46,65 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 
 // Create 在事务中创建商品，包括商品基本信息、图片和标签
 func (r *productRepository) Create(ctx context.Context, product *model.Product, images []model.ProductImage, tagIDs []int64) (int64, error) {
-	// 开始事务
-	tx := r.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return 0, fmt.Errorf("begin transaction failed: %w", tx.Error)
+	if r.db == nil {
+		return 0, fmt.Errorf("db is nil")
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+
+	var createdID int64
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 插入商品基本信息
+		if err := tx.Create(product).Error; err != nil {
+			return fmt.Errorf("create product failed: %w", err)
 		}
-	}()
+		createdID = product.ID
 
-	// 插入商品基本信息
-	if err := tx.Create(product).Error; err != nil {
-		tx.Rollback()
-		return 0, fmt.Errorf("create product failed: %w", err)
-	}
+		// 设置主图URL并插入图片
+		mainImageURL := ""
+		if len(images) > 0 {
+			primaryExists := false
+			for i := range images {
+				images[i].ProductID = product.ID
+				if images[i].IsPrimary {
+					primaryExists = true
+					mainImageURL = images[i].URL
+				}
+			}
+			if !primaryExists {
+				images[0].IsPrimary = true
+				mainImageURL = images[0].URL
+			}
 
-	// 设置主图URL
-	mainImageURL := ""
-	if len(images) > 0 {
-		// 确保有且仅有一个主图
-		primaryExists := false
-		for i := range images {
-			images[i].ProductID = product.ID
-			if images[i].IsPrimary {
-				primaryExists = true
-				mainImageURL = images[i].URL
+			if err := tx.Create(&images).Error; err != nil {
+				return fmt.Errorf("create product images failed: %w", err)
+			}
+
+			if err := tx.Model(product).Update("main_image_url", mainImageURL).Error; err != nil {
+				return fmt.Errorf("update main image url failed: %w", err)
 			}
 		}
-		// 如果没有指定主图，将第一张设为主图
-		if !primaryExists && len(images) > 0 {
-			images[0].IsPrimary = true
-			mainImageURL = images[0].URL
-		}
 
-		// 插入商品图片
-		if err := tx.CreateInBatches(images, len(images)).Error; err != nil {
-			tx.Rollback()
-			return 0, fmt.Errorf("create product images failed: %w", err)
-		}
-	}
-
-	// 更新主图URL
-	if mainImageURL != "" {
-		if err := tx.Model(product).Update("main_image_url", mainImageURL).Error; err != nil {
-			tx.Rollback()
-			return 0, fmt.Errorf("update main image url failed: %w", err)
-		}
-	}
-
-	// 处理标签关联
-	if len(tagIDs) > 0 {
-		// 创建product_tags关联记录
-		for _, tagID := range tagIDs {
-			productTag := gin.H{
-				"product_id": product.ID,
-				"tag_id":     tagID,
+		// 处理标签关联
+		if len(tagIDs) > 0 {
+			relations := make([]map[string]interface{}, 0, len(tagIDs))
+			for _, tagID := range tagIDs {
+				relations = append(relations, map[string]interface{}{
+					"product_id": product.ID,
+					"tag_id":     tagID,
+				})
 			}
-			if err := tx.Table("product_tags").Create(productTag).Error; err != nil {
-				tx.Rollback()
-				return 0, fmt.Errorf("create product tag relation failed: %w", err)
+			if err := tx.Table("product_tags").Create(&relations).Error; err != nil {
+				return fmt.Errorf("create product tag relation failed: %w", err)
 			}
 		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
 	}
 
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		return 0, fmt.Errorf("commit transaction failed: %w", err)
-	}
-
-	return product.ID, nil
+	return createdID, nil
 }
 
 // Update 更新商品信息，包含权限控制

@@ -3,6 +3,8 @@
 package user
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/common/errors"
 	"github.com/yycy134679/school-secondhand-trading-system/backend/common/resp"
@@ -106,16 +108,22 @@ func RegisterRoutes(rg *gin.RouterGroup, userService *user.UserService) {
 			// GET /api/v1/users/profile - 获取个人信息
 			authorized.GET("/profile", func(c *gin.Context) {
 				// 从上下文获取userID（由AuthMiddleware注入）
-				userIDInterface, exists := c.Get("userID")
+				userIDInterface, exists := c.Get("user_id")
 				if !exists {
 					resp.Error(c, errors.CodeUnauthenticated, "用户未登录")
 					return
 				}
-				userID, ok := userIDInterface.(uint)
+				userIDStr, ok := userIDInterface.(string)
 				if !ok {
 					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
 					return
 				}
+				userIDParsed, err := strconv.ParseUint(userIDStr, 10, 64)
+				if err != nil {
+					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
+					return
+				}
+				userID := uint(userIDParsed)
 
 				// 调用服务层获取用户信息
 				userResp, err := userService.GetProfile(c.Request.Context(), userID)
@@ -143,16 +151,22 @@ func RegisterRoutes(rg *gin.RouterGroup, userService *user.UserService) {
 				}
 
 				// 从上下文获取userID（由AuthMiddleware注入）
-				userIDInterface, exists := c.Get("userID")
+				userIDInterface, exists := c.Get("user_id")
 				if !exists {
 					resp.Error(c, errors.CodeUnauthenticated, "用户未登录")
 					return
 				}
-				userID, ok := userIDInterface.(uint)
+				userIDStr, ok := userIDInterface.(string)
 				if !ok {
 					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
 					return
 				}
+				userIDParsed, err := strconv.ParseUint(userIDStr, 10, 64)
+				if err != nil {
+					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
+					return
+				}
+				userID := uint(userIDParsed)
 
 				// 调用服务层更新用户信息
 				userResp, err := userService.UpdateProfile(c.Request.Context(), userID, req.Nickname, req.AvatarURL, req.WechatID)
@@ -186,16 +200,22 @@ func RegisterRoutes(rg *gin.RouterGroup, userService *user.UserService) {
 				}
 
 				// 从上下文获取userID（由AuthMiddleware注入）
-				userIDInterface, exists := c.Get("userID")
+				userIDInterface, exists := c.Get("user_id")
 				if !exists {
 					resp.Error(c, errors.CodeUnauthenticated, "用户未登录")
 					return
 				}
-				userID, ok := userIDInterface.(uint)
+				userIDStr, ok := userIDInterface.(string)
 				if !ok {
 					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
 					return
 				}
+				userIDParsed, err := strconv.ParseUint(userIDStr, 10, 64)
+				if err != nil {
+					resp.Error(c, errors.CodeInvalidParams, "用户ID格式错误")
+					return
+				}
+				userID := uint(userIDParsed)
 
 				// 调用服务层修改密码
 				userResp, err := userService.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword)

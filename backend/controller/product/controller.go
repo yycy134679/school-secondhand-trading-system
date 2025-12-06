@@ -85,17 +85,38 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 	}
 
 	// 获取上传的文件
-	files := c.Request.MultipartForm.File["images"]
+	form, err := c.MultipartForm()
+	if err != nil {
+		resp.Error(c, 400, "获取上传文件失败")
+		return
+	}
+	files := form.File["images"]
+	if len(files) == 0 {
+		resp.Error(c, 400, "请至少上传一张图片")
+		return
+	}
+
+	// 主图索引（可选）
+	var primaryImageIndex *int
+	if idxStr := c.PostForm("primaryImageIndex"); idxStr != "" {
+		if idx, err := strconv.Atoi(idxStr); err == nil {
+			primaryImageIndex = &idx
+		} else {
+			resp.Error(c, 400, "无效的主图索引")
+			return
+		}
+	}
 
 	// 构建请求参数
 	req := &product.CreateProductRequest{
-		Title:       title,
-		Description: description,
-		Price:       price,
-		CategoryID:  categoryID,
-		ConditionID: conditionID,
-		TagIDs:      tagIDs,
-		Images:      files,
+		Title:             title,
+		Description:       description,
+		Price:             price,
+		CategoryID:        categoryID,
+		ConditionID:       conditionID,
+		TagIDs:            tagIDs,
+		Images:            files,
+		PrimaryImageIndex: primaryImageIndex,
 	}
 
 	// 调用服务层方法
@@ -320,10 +341,10 @@ func (pc *ProductController) ListMyProducts(c *gin.Context) {
 	}
 
 	resp.Success(c, gin.H{
-		"list":  products,
-		"total": total,
-		"page":  page,
-		"size":  pageSize,
+		"items":    products,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
 	})
 }
 
@@ -396,10 +417,10 @@ func (pc *ProductController) SearchProducts(c *gin.Context) {
 	}
 
 	resp.Success(c, gin.H{
-		"list":  products,
-		"total": total,
-		"page":  page,
-		"size":  pageSize,
+		"items":    products,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
 	})
 }
 
@@ -465,9 +486,9 @@ func (pc *ProductController) GetProductsByCategory(c *gin.Context) {
 	}
 
 	resp.Success(c, gin.H{
-		"list":  products,
-		"total": total,
-		"page":  page,
-		"size":  pageSize,
+		"items":    products,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
 	})
 }

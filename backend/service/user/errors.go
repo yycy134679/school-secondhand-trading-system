@@ -39,21 +39,21 @@ func (e *ServiceError) Unwrap() error {
 
 // Common errors
 var (
-	ErrAccountFormat      = errors.New("account must contain only letters and numbers")
-	ErrPasswordTooShort   = errors.New("password must be at least 8 characters long")
-	ErrAccountExists      = errors.New("account already exists")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrInvalidCredentials = errors.New("invalid account or password")
-	ErrInvalidOldPassword = errors.New("old password is incorrect")
-	ErrWechatIDFormat     = errors.New("wechat ID must be 4-64 characters, containing letters, numbers, underscores or hyphens")
+	ErrAccountFormat      = errors.New("账号只能包含字母和数字")
+	ErrPasswordTooShort   = errors.New("密码长度至少为 8 个字符")
+	ErrAccountExists      = errors.New("账号已存在")
+	ErrUserNotFound       = errors.New("用户不存在")
+	ErrInvalidCredentials = errors.New("账号或密码不正确")
+	ErrInvalidOldPassword = errors.New("原密码错误")
+	ErrWechatIDFormat     = errors.New("微信号必须为 4-64 个字符，且只可包含字母、数字、下划线或连字符")
 )
 
 // NewNicknameChangeTooSoonError creates a new error for nickname change too soon
 func NewNicknameChangeTooSoonError(days int) *ServiceError {
 	return &ServiceError{
 		Code:    ErrCodeNicknameChangeTooSoon,
-		Message: "nickname can only be changed once every 30 days",
-		Err:     errors.New("nickname change too soon"),
+		Message: "昵称每 30 天只能修改一次",
+		Err:     errors.New("昵称修改过于频繁"),
 	}
 }
 
