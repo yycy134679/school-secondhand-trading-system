@@ -33,7 +33,11 @@ export const useAppStore = defineStore('app', () => {
       }
 
       if (tagsRes.status === 'fulfilled') {
-        tags.value = tagsRes.value.data.data
+        // 兼容后端字段命名，确保存在 categoryId 便于前端筛选
+        tags.value = tagsRes.value.data.data.map((tag) => ({
+          ...tag,
+          categoryId: tag.categoryId ?? (tag as unknown as { category_id?: number }).category_id,
+        }))
       } else {
         errors.push('标签加载失败')
         console.error('Failed to load tags:', tagsRes.reason)

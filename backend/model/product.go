@@ -48,11 +48,17 @@ type ProductDetailDTO struct {
 
 // ProductCardDTO 商品卡片DTO
 type ProductCardDTO struct {
-	ID        int64   `json:"id"`
-	Title     string  `json:"title"`
-	Price     float64 `json:"price"`
-	MainImage string  `json:"mainImageUrl"`
-	Status    string  `json:"status"`
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Price       float64   `json:"price"`
+	MainImage   string    `json:"mainImageUrl"`
+	Status      string    `json:"status"`
+	SellerID    int64     `json:"sellerId"`
+	CategoryID  int64     `json:"categoryId"`
+	ConditionID int64     `json:"conditionId"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 // SellerInfo 卖家简要信息

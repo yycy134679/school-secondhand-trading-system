@@ -41,7 +41,8 @@ func (tc *TagController) ListTags(c *gin.Context) {
 func (tc *TagController) CreateTag(c *gin.Context) {
 	// 绑定请求体
 	var req struct {
-		Name string `json:"name" binding:"required"`
+		Name       string `json:"name" binding:"required"`
+		CategoryID int64  `json:"categoryId" binding:"required,gt=0"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -51,7 +52,8 @@ func (tc *TagController) CreateTag(c *gin.Context) {
 
 	// 创建标签模型
 	tag := &model.Tag{
-		Name: req.Name,
+		Name:       req.Name,
+		CategoryID: req.CategoryID,
 	}
 
 	// 调用服务层创建标签
@@ -77,7 +79,8 @@ func (tc *TagController) UpdateTag(c *gin.Context) {
 
 	// 绑定请求体
 	var req struct {
-		Name string `json:"name" binding:"required"`
+		Name       string `json:"name" binding:"required"`
+		CategoryID int64  `json:"categoryId" binding:"required,gt=0"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -87,8 +90,9 @@ func (tc *TagController) UpdateTag(c *gin.Context) {
 
 	// 创建标签模型
 	tag := &model.Tag{
-		ID:   tagID,
-		Name: req.Name,
+		ID:         tagID,
+		Name:       req.Name,
+		CategoryID: req.CategoryID,
 	}
 
 	// 调用服务层更新标签

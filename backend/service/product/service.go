@@ -728,11 +728,17 @@ func (s *ProductService) toCardDTO(ctx context.Context, p *model.Product) (model
 	}
 
 	return model.ProductCardDTO{
-		ID:        p.ID,
-		Title:     p.Title,
-		Price:     p.Price,
-		MainImage: main,
-		Status:    p.Status,
+		ID:          p.ID,
+		Title:       p.Title,
+		Price:       p.Price,
+		MainImage:   main,
+		Status:      p.Status,
+		SellerID:    p.SellerID,
+		CategoryID:  p.CategoryID,
+		ConditionID: p.ConditionID,
+		Description: p.Description,
+		CreatedAt:   p.CreatedAt,
+		UpdatedAt:   p.UpdatedAt,
 	}, nil
 }
 

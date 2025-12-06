@@ -166,7 +166,7 @@ type HomeData struct {
 // GetHomeData 获取首页数据
 func (s *RecommendService) GetHomeData(ctx context.Context, userID *int64, page, pageSize int) (*HomeData, error) {
 	var recommendations []model.Product
-	var recommendIDs []int64
+	recommendIDSet := make(map[int64]struct{})
 
 	// 如果用户已登录,获取推荐商品
 	if userID != nil {
@@ -175,16 +175,13 @@ func (s *RecommendService) GetHomeData(ctx context.Context, userID *int64, page,
 		if err != nil {
 			return nil, err
 		}
-
-		// 提取推荐商品ID,用于排除
-		recommendIDs = make([]int64, len(recommendations))
-		for i, p := range recommendations {
-			recommendIDs[i] = p.ID
+		for _, p := range recommendations {
+			recommendIDSet[p.ID] = struct{}{}
 		}
 	}
 
-	// 获取最新在售商品(排除推荐中已有的)
-	latestProducts, total, err := s.productRepo.ListLatestForSale(ctx, recommendIDs, page, pageSize)
+	// 获取最新在售商品
+	latestProducts, total, err := s.productRepo.ListLatestForSale(ctx, nil, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -200,14 +197,26 @@ func (s *RecommendService) GetHomeData(ctx context.Context, userID *int64, page,
 		latestDTOs[i] = s.toProductCardDTO(&p)
 	}
 
-	// 如果推荐数不足5条,用最新商品补充
-	if len(recommendDTOs) < 5 && len(latestDTOs) > 0 {
+	// 登录用户：如果推荐数不足5条,用最新商品补充
+	if userID != nil && len(recommendDTOs) < 5 && len(latestDTOs) > 0 {
 		needed := 5 - len(recommendDTOs)
-		if needed > len(latestDTOs) {
-			needed = len(latestDTOs)
+		additional := make([]model.ProductCardDTO, 0, needed)
+		for i := range latestProducts {
+			if latestProducts[i].SellerID == *userID {
+				continue
+			}
+			if _, exists := recommendIDSet[latestProducts[i].ID]; exists {
+				continue
+			}
+			additional = append(additional, s.toProductCardDTO(&latestProducts[i]))
+			recommendIDSet[latestProducts[i].ID] = struct{}{}
+			if len(additional) >= needed {
+				break
+			}
 		}
-		recommendDTOs = append(recommendDTOs, latestDTOs[:needed]...)
-		latestDTOs = latestDTOs[needed:]
+		if len(additional) > 0 {
+			recommendDTOs = append(recommendDTOs, additional...)
+		}
 	}
 
 	return &HomeData{
@@ -228,11 +237,17 @@ func (s *RecommendService) toProductCardDTO(product *model.Product) model.Produc
 		Scan(&mainImage)
 
 	return model.ProductCardDTO{
-		ID:        product.ID,
-		Title:     product.Title,
-		Price:     product.Price,
-		MainImage: mainImage,
-		Status:    product.Status,
+		ID:          product.ID,
+		Title:       product.Title,
+		Price:       product.Price,
+		MainImage:   mainImage,
+		Status:      product.Status,
+		SellerID:    product.SellerID,
+		CategoryID:  product.CategoryID,
+		ConditionID: product.ConditionID,
+		Description: product.Description,
+		CreatedAt:   product.CreatedAt,
+		UpdatedAt:   product.UpdatedAt,
 	}
 }
 
