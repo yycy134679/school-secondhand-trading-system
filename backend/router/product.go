@@ -17,6 +17,8 @@ func SetupProductRoutes(engine *gin.Engine, productController *product.ProductCo
 	{
 		// 获取商品详情 - 使用可选认证中间件以便记录浏览
 		public.GET("/products/:id", middleware.OptionalAuthMiddleware(), productController.GetProductDetail)
+		// 获取卖家联系方式 - 可选登录，未登录返回提示
+		public.GET("/products/:id/contact", middleware.OptionalAuthMiddleware(), productController.GetProductContact)
 		// 搜索商品
 		public.GET("/products/search", productController.SearchProducts)
 		// 获取分类商品

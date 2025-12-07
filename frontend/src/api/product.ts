@@ -94,6 +94,10 @@ export function getProductDetail(id: number) {
   return request.get<ApiResponse<ProductDetail>>(`/products/${id}`)
 }
 
+export function recordProductView(id: number) {
+  return request.post<ApiResponse<{ recorded: boolean }>>(`/products/${id}/view`)
+}
+
 export function getMyProducts(params: { keyword?: string; page?: number; pageSize?: number }) {
   return request.get<ApiResponse<PageResult<Product>>>('/products/my', { params })
 }

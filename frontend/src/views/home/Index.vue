@@ -38,17 +38,14 @@
 
     <div class="container main-content">
       <!-- Recommendations Section (Logged in only) -->
-      <section
-        v-if="userStore.isLoggedIn && productStore.homeRecommendations.length > 0"
-        class="section recommendations"
-      >
-        <h2 class="section-title">为你推荐</h2>
-        <div class="product-grid">
-          <ProductCard
-            v-for="product in productStore.homeRecommendations"
-            :key="product.id"
-            :product="product"
-          />
+    <section v-if="userStore.isLoggedIn && recommendedProducts.length > 0" class="section recommendations">
+      <h2 class="section-title">为你推荐</h2>
+      <div class="product-grid">
+        <ProductCard
+          v-for="product in recommendedProducts"
+          :key="product.id"
+          :product="product"
+        />
         </div>
       </section>
 
@@ -108,6 +105,9 @@ const userStore = useUserStore()
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(20)
+
+// 推荐商品只展示前四个，避免版面过长
+const recommendedProducts = computed(() => productStore.homeRecommendations.slice(0, 4))
 
 // 热门搜索词，优先从 store 获取，或者使用默认值
 const hotTags = computed(() => {

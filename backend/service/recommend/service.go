@@ -2,6 +2,7 @@ package recommend
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"gorm.io/gorm"
@@ -62,14 +63,17 @@ func (s *RecommendService) GetRecommendations(ctx context.Context, userID int64,
 
 // calculateRecommendations 计算推荐商品
 func (s *RecommendService) calculateRecommendations(ctx context.Context, userID int64, maxCount int) ([]model.Product, error) {
-	// 1. 获取用户最近浏览的商品(最多20条)
+	if maxCount <= 0 {
+		return []model.Product{}, nil
+	}
+
+	// 1. 获取用户最近浏览的商品(最多20条)，按浏览时间倒序
 	recentViews, err := s.viewRecordRepo.ListRecentViews(ctx, userID, 20)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(recentViews) == 0 {
-		// 没有浏览记录,返回空列表
 		return []model.Product{}, nil
 	}
 
@@ -79,63 +83,109 @@ func (s *RecommendService) calculateRecommendations(ctx context.Context, userID 
 		viewedProductIDs[i] = view.ProductID
 	}
 
-	// 3. 统计这些商品的标签频次
-	type TagCount struct {
-		TagID int64
-		Count int
-	}
-	var tagCounts []TagCount
-
-	err = s.db.WithContext(ctx).
-		Table("product_tags").
-		Select("tag_id, COUNT(*) as count").
-		Where("product_id IN ?", viewedProductIDs).
-		Group("tag_id").
-		Order("count DESC").
-		Limit(10). // 取前10个最常见的标签
-		Scan(&tagCounts).Error
-
-	if err != nil {
+	// 3. 过滤已删除/下架的浏览记录，基于仍在售的商品抽取分类
+	var viewedProducts []model.Product
+	if err := s.db.WithContext(ctx).
+		Where("id IN ? AND status = ?", viewedProductIDs, "ForSale").
+		Find(&viewedProducts).Error; err != nil {
 		return nil, err
 	}
 
-	if len(tagCounts) == 0 {
-		// 浏览的商品都没有标签,返回空列表
+	if len(viewedProducts) == 0 {
 		return []model.Product{}, nil
 	}
 
-	// 4. 提取标签ID
-	tagIDs := make([]int64, len(tagCounts))
-	for i, tc := range tagCounts {
-		tagIDs[i] = tc.TagID
+	productMap := make(map[int64]*model.Product, len(viewedProducts))
+	for i := range viewedProducts {
+		productMap[viewedProducts[i].ID] = &viewedProducts[i]
 	}
 
-	// 5. 查询包含这些标签的在售商品,排除用户自己发布的和已浏览的
-	var products []model.Product
-
-	subQuery := s.db.WithContext(ctx).
-		Table("product_tags").
-		Select("product_id, COUNT(*) as tag_match_count").
-		Where("tag_id IN ?", tagIDs).
-		Group("product_id").
-		Order("tag_match_count DESC")
-
-	err = s.db.WithContext(ctx).
-		Table("products").
-		Select("products.*").
-		Joins("INNER JOIN (?) AS pt ON products.id = pt.product_id", subQuery).
-		Where("products.status = ?", "ForSale").
-		Where("products.seller_id != ?", userID).
-		Where("products.id NOT IN ?", viewedProductIDs).
-		Order("pt.tag_match_count DESC, products.created_at DESC").
-		Limit(maxCount).
-		Find(&products).Error
-
-	if err != nil {
-		return nil, err
+	// 4. 按浏览时间倒序选出最新的两个不同分类
+	selectedCategories := make([]int64, 0, 2)
+	categorySeen := make(map[int64]struct{})
+	for _, view := range recentViews {
+		product, ok := productMap[view.ProductID]
+		if !ok {
+			continue
+		}
+		if _, exists := categorySeen[product.CategoryID]; exists {
+			continue
+		}
+		categorySeen[product.CategoryID] = struct{}{}
+		selectedCategories = append(selectedCategories, product.CategoryID)
+		if len(selectedCategories) == 2 {
+			break
+		}
 	}
 
-	return products, nil
+	if len(selectedCategories) == 0 {
+		return []model.Product{}, nil
+	}
+
+	// 5. 按分类查询在售商品，排除已浏览和本人发布，最多4条（两类各2，单类最多4）
+	categoryProducts := make(map[int64][]model.Product, len(selectedCategories))
+	for _, categoryID := range selectedCategories {
+		products, err := s.fetchCategoryProducts(ctx, categoryID, userID, viewedProductIDs, maxCount)
+		if err != nil {
+			return nil, err
+		}
+		categoryProducts[categoryID] = products
+	}
+
+	var results []model.Product
+	if len(selectedCategories) == 1 {
+		products := categoryProducts[selectedCategories[0]]
+		if len(products) > maxCount {
+			products = products[:maxCount]
+		}
+		results = append(results, products...)
+	} else {
+		// 先从每个分类各取2条（不足则取全部），再用剩余的按分类顺序补齐到上限
+		categoryTaken := make(map[int64]int, len(selectedCategories))
+		for _, categoryID := range selectedCategories {
+			products := categoryProducts[categoryID]
+			take := 2
+			if len(products) < take {
+				take = len(products)
+			}
+			results = append(results, products[:take]...)
+			categoryTaken[categoryID] = take
+		}
+
+		remaining := maxCount - len(results)
+		if remaining > 0 {
+			for _, categoryID := range selectedCategories {
+				if remaining == 0 {
+					break
+				}
+				products := categoryProducts[categoryID]
+				start := categoryTaken[categoryID]
+				if start >= len(products) {
+					continue
+				}
+				end := start + remaining
+				if end > len(products) {
+					end = len(products)
+				}
+				if start < end {
+					results = append(results, products[start:end]...)
+					categoryTaken[categoryID] = end
+					remaining = maxCount - len(results)
+				}
+			}
+		}
+	}
+
+	// 6. 全局按创建时间倒序排序并裁剪到上限
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].CreatedAt.After(results[j].CreatedAt)
+	})
+
+	if len(results) > maxCount {
+		results = results[:maxCount]
+	}
+
+	return results, nil
 }
 
 // getProductsByIDs 根据ID列表获取商品
@@ -165,65 +215,121 @@ type HomeData struct {
 
 // GetHomeData 获取首页数据
 func (s *RecommendService) GetHomeData(ctx context.Context, userID *int64, page, pageSize int) (*HomeData, error) {
+	const maxRecommendations = 4
+
 	var recommendations []model.Product
 	recommendIDSet := make(map[int64]struct{})
+	viewedIDSet := make(map[int64]struct{})
 
 	// 如果用户已登录,获取推荐商品
 	if userID != nil {
 		var err error
-		recommendations, err = s.GetRecommendations(ctx, *userID, 10)
+		recommendations, err = s.GetRecommendations(ctx, *userID, maxRecommendations)
 		if err != nil {
 			return nil, err
 		}
 		for _, p := range recommendations {
 			recommendIDSet[p.ID] = struct{}{}
 		}
+
+		// 获取浏览过的商品，用于补齐时继续排除
+		recentViews, err := s.viewRecordRepo.ListRecentViews(ctx, *userID, 20)
+		if err != nil {
+			return nil, err
+		}
+		for _, view := range recentViews {
+			viewedIDSet[view.ProductID] = struct{}{}
+		}
 	}
 
-	// 获取最新在售商品
-	latestProducts, total, err := s.productRepo.ListLatestForSale(ctx, nil, page, pageSize)
+	// 获取最新在售商品（先排除已推荐的，以便最新列表去重）
+	excludeIDs := make([]int64, 0, len(recommendIDSet))
+	for id := range recommendIDSet {
+		excludeIDs = append(excludeIDs, id)
+	}
+	latestProducts, total, err := s.productRepo.ListLatestForSale(ctx, excludeIDs, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	// 转换为DTO
-	recommendDTOs := make([]model.ProductCardDTO, len(recommendations))
-	for i, p := range recommendations {
-		recommendDTOs[i] = s.toProductCardDTO(&p)
-	}
-
-	latestDTOs := make([]model.ProductCardDTO, len(latestProducts))
-	for i, p := range latestProducts {
-		latestDTOs[i] = s.toProductCardDTO(&p)
-	}
-
-	// 登录用户：如果推荐数不足5条,用最新商品补充
-	if userID != nil && len(recommendDTOs) < 5 && len(latestDTOs) > 0 {
-		needed := 5 - len(recommendDTOs)
-		additional := make([]model.ProductCardDTO, 0, needed)
+	// 登录用户：如果推荐数不足上限,用最新商品补充（仍排除本人发布和已浏览）
+	usedFromLatest := make(map[int64]struct{})
+	if userID != nil && len(recommendations) < maxRecommendations && len(latestProducts) > 0 {
 		for i := range latestProducts {
+			if len(recommendations) >= maxRecommendations {
+				break
+			}
 			if latestProducts[i].SellerID == *userID {
 				continue
 			}
 			if _, exists := recommendIDSet[latestProducts[i].ID]; exists {
 				continue
 			}
-			additional = append(additional, s.toProductCardDTO(&latestProducts[i]))
-			recommendIDSet[latestProducts[i].ID] = struct{}{}
-			if len(additional) >= needed {
-				break
+			if _, viewed := viewedIDSet[latestProducts[i].ID]; viewed {
+				continue
 			}
+			recommendations = append(recommendations, latestProducts[i])
+			recommendIDSet[latestProducts[i].ID] = struct{}{}
+			usedFromLatest[latestProducts[i].ID] = struct{}{}
 		}
-		if len(additional) > 0 {
-			recommendDTOs = append(recommendDTOs, additional...)
+	}
+
+	// 推荐按创建时间倒序
+	sort.Slice(recommendations, func(i, j int) bool {
+		return recommendations[i].CreatedAt.After(recommendations[j].CreatedAt)
+	})
+
+	recommendDTOs := make([]model.ProductCardDTO, len(recommendations))
+	for i, p := range recommendations {
+		recommendDTOs[i] = s.toProductCardDTO(&p)
+	}
+
+	// 过滤掉已用于补齐的最新商品，保持最新列表与推荐去重
+	filteredLatest := make([]model.Product, 0, len(latestProducts))
+	for i := range latestProducts {
+		if _, used := usedFromLatest[latestProducts[i].ID]; used {
+			continue
 		}
+		filteredLatest = append(filteredLatest, latestProducts[i])
+	}
+	latestDTOs := make([]model.ProductCardDTO, len(filteredLatest))
+	for i, p := range filteredLatest {
+		latestDTOs[i] = s.toProductCardDTO(&p)
+	}
+
+	// 调整最新列表总数（移除补齐占用的商品）
+	adjustedTotal := total - int64(len(usedFromLatest))
+	if adjustedTotal < 0 {
+		adjustedTotal = 0
 	}
 
 	return &HomeData{
 		Recommendations: recommendDTOs,
 		Latest:          latestDTOs,
-		TotalCount:      total,
+		TotalCount:      adjustedTotal,
 	}, nil
+}
+
+// fetchCategoryProducts 获取某分类的在售商品，排除已浏览和本人发布，按创建时间倒序
+func (s *RecommendService) fetchCategoryProducts(ctx context.Context, categoryID int64, userID int64, excludeIDs []int64, limit int) ([]model.Product, error) {
+	if limit <= 0 {
+		return []model.Product{}, nil
+	}
+
+	query := s.db.WithContext(ctx).
+		Where("status = ? AND category_id = ?", "ForSale", categoryID).
+		Where("seller_id <> ?", userID)
+
+	if len(excludeIDs) > 0 {
+		query = query.Where("id NOT IN ?", excludeIDs)
+	}
+
+	var products []model.Product
+	if err := query.Order("created_at DESC").Limit(limit).Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }
 
 // toProductCardDTO 转换为ProductCardDTO

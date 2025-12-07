@@ -302,6 +302,36 @@ func (pc *ProductController) GetProductDetail(c *gin.Context) {
 	resp.Success(c, productDTO)
 }
 
+// GetProductContact 获取联系卖家信息
+// GET /api/v1/products/:id/contact
+func (pc *ProductController) GetProductContact(c *gin.Context) {
+	productIDStr := c.Param("id")
+	productID, err := strconv.ParseInt(productIDStr, 10, 64)
+	if err != nil {
+		resp.Error(c, 1001, "无效的商品ID")
+		return
+	}
+
+	var viewerID *int64
+	if userIDStr, exists := c.Get("user_id"); exists {
+		if id, err := strconv.ParseInt(userIDStr.(string), 10, 64); err == nil {
+			viewerID = &id
+		}
+	}
+
+	data, err := pc.productService.GetProductContact(c.Request.Context(), productID, viewerID)
+	if err != nil {
+		if strings.Contains(err.Error(), "不存在") {
+			resp.Error(c, 3001, err.Error())
+		} else {
+			resp.Error(c, 500, err.Error())
+		}
+		return
+	}
+
+	resp.Success(c, data)
+}
+
 // ListMyProducts 获取我的商品列表
 // GET /api/v1/products/my
 func (pc *ProductController) ListMyProducts(c *gin.Context) {

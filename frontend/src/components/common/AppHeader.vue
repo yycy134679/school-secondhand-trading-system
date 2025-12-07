@@ -74,6 +74,21 @@ const handleAdminEntry = () => {
   window.location.href = adminLoginUrl.value
 }
 
+const handleLogoClick = async () => {
+  try {
+    if (route.path === '/') {
+      await router.replace('/')
+    } else {
+      await router.push('/')
+    }
+  } catch (err) {
+    console.warn('返回首页导航失败，尝试刷新页面', err)
+    if (typeof window !== 'undefined') {
+      window.location.href = '/'
+    }
+  }
+}
+
 const switchToRegister = () => {
   showLoginModal.value = false
   showRegisterModal.value = true
@@ -89,7 +104,7 @@ const switchToLogin = () => {
   <header class="app-header">
     <div class="container header-content">
       <div class="logo">
-        <router-link to="/">校园二手</router-link>
+        <a href="/" @click.prevent="handleLogoClick">校园二手</a>
       </div>
 
       <div class="search-bar">
@@ -120,7 +135,6 @@ const switchToLogin = () => {
       </div>
 
       <div class="actions">
-        <button type="button" class="btn admin-link" @click="handleAdminEntry">进入后台</button>
         <button class="btn btn-primary publish-btn" @click="handlePublish">发布闲置</button>
 
         <div v-if="userStore.isLoggedIn" class="user-menu">
