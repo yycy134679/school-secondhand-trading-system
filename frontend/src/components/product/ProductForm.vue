@@ -127,12 +127,12 @@ const handleSubmit = () => {
 <template>
   <form @submit.prevent="handleSubmit" class="product-form">
     <div class="form-group">
-      <label class="label">标题</label>
+      <label class="label">商品名称</label>
       <input
         v-model="form.title"
         type="text"
         class="input"
-        placeholder="请输入商品标题"
+        placeholder="请输入商品名称"
         :class="{ error: errors.title }"
       />
       <span class="error-text" v-if="errors.title">{{ errors.title }}</span>

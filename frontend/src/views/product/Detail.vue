@@ -98,6 +98,7 @@
           <div class="wechat-value">
             <span class="wechat-id">{{ contactInfo.wechat }}</span>
             <button class="copy-btn" @click="copyWechat">复制</button>
+            <span v-if="copyStatus" class="copy-tip">{{ copyStatus }}</span>
           </div>
         </div>
         <div class="contact-tips">{{ contactInfo.tips }}</div>
@@ -107,9 +108,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getProductDetail, getProductContact, type ProductDetail } from '@/api/product'
+import {
+  getProductDetail,
+  getProductContact,
+  recordProductView,
+  type ProductDetail,
+} from '@/api/product'
 import { formatPrice, formatRelativeTime } from '@/utils/format'
 import { ErrorCode } from '@common/constants/error_code'
 import ProductStatus from '@/components/product/ProductStatus.vue'
@@ -132,6 +138,8 @@ const showLoginModal = ref(false)
 const showContactModal = ref(false)
 const contactLoading = ref(false)
 const contactInfo = ref<{ wechat: string; tips: string }>({ wechat: '', tips: '' })
+const copyStatus = ref('')
+let copyTimer: number | null = null
 
 const activeImageUrl = computed(() => {
   if (!product.value?.images?.length) return product.value?.mainImageUrl
@@ -156,6 +164,7 @@ const loadData = async () => {
       // 默认选中主图，或者第一张图
       const primaryIndex = res.data.images.findIndex((img) => img.isPrimary)
       activeImageIndex.value = primaryIndex >= 0 ? primaryIndex : 0
+      await recordView(res.data.id)
     } else {
       error.value = res.message || '加载失败'
     }
@@ -241,13 +250,36 @@ const handleLoginSuccess = async () => {
 const copyWechat = () => {
   if (contactInfo.value.wechat) {
     navigator.clipboard.writeText(contactInfo.value.wechat).then(() => {
-      alert('已复制微信号')
+      copyStatus.value = '已复制'
+      if (copyTimer) {
+        window.clearTimeout(copyTimer)
+      }
+      copyTimer = window.setTimeout(() => {
+        copyStatus.value = ''
+        copyTimer = null
+      }, 2000)
     })
+  }
+}
+
+const recordView = async (productId: number) => {
+  if (!userStore.isLoggedIn) return
+  try {
+    await recordProductView(productId)
+  } catch (err) {
+    console.warn('记录浏览失败:', err)
   }
 }
 
 onMounted(() => {
   loadData()
+})
+
+onBeforeUnmount(() => {
+  if (copyTimer) {
+    window.clearTimeout(copyTimer)
+    copyTimer = null
+  }
 })
 </script>
 
@@ -473,10 +505,10 @@ onMounted(() => {
       margin-bottom: 8px;
     }
 
-    .wechat-value {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      .wechat-value {
+        display: flex;
+        align-items: center;
+        gap: 12px;
 
       .wechat-id {
         font-size: 18px;
@@ -498,6 +530,12 @@ onMounted(() => {
         &:hover {
           opacity: 0.9;
         }
+      }
+
+      .copy-tip {
+        font-size: 12px;
+        color: #52c41a;
+        white-space: nowrap;
       }
     }
   }

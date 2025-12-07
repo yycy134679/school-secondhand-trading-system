@@ -1,6 +1,7 @@
 import request from '@/utils/request'
 import type { ApiResponse } from '@common/types/api'
 import type { User, LoginResponse } from '@common/types/user'
+import type { Product } from '@common/types/product'
 
 // 注册参数
 export interface RegisterParams {
@@ -52,11 +53,16 @@ export function changePassword(data: ChangePasswordParams) {
   return request.put<ApiResponse<void>>('/users/password', data)
 }
 
-import type { Product } from '@common/types/product'
+export interface RecentView {
+  viewedAt: string
+  product: Product
+}
+
+export interface RecentViewsResponse {
+  views: RecentView[]
+  total: number
+}
 
 export function getRecentViews() {
-  // 假设返回的是商品列表，具体类型需确认，暂时用 any 或 Product[]
-  // 根据 api.md 3.4，最近浏览返回商品列表
-  // 假设 Product 类型已定义
-  return request.get<ApiResponse<Product[]>>('/users/recent-views')
+  return request.get<ApiResponse<RecentViewsResponse>>('/users/recent-views')
 }

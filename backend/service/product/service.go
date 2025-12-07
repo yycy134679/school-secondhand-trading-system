@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"mime/multipart"
@@ -91,6 +92,13 @@ type statusChangeRecord struct {
 	From   string
 	To     string
 	UserID int64
+}
+
+// ContactResponse 联系卖家的返回结构
+type ContactResponse struct {
+	CanContact   bool    `json:"canContact"`
+	SellerWechat *string `json:"sellerWechat"`
+	Tips         string  `json:"tips,omitempty"`
 }
 
 const (
@@ -357,6 +365,64 @@ func (s *ProductService) GetProductDetail(ctx context.Context, productID int64, 
 	}
 
 	return dto, nil
+}
+
+// GetProductContact 获取联系卖家信息（微信号或提示）
+func (s *ProductService) GetProductContact(ctx context.Context, productID int64, viewerID *int64) (*ContactResponse, error) {
+	if s.productRepo == nil || s.userRepo == nil {
+		return nil, fmt.Errorf("服务未初始化")
+	}
+
+	if viewerID == nil {
+		return &ContactResponse{
+			CanContact:   false,
+			SellerWechat: nil,
+			Tips:         "请先登录后联系卖家",
+		}, nil
+	}
+
+	product, _, _, err := s.productRepo.GetByID(ctx, productID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("商品不存在")
+		}
+		return nil, err
+	}
+
+	if product.SellerID == *viewerID {
+		return &ContactResponse{
+			CanContact:   false,
+			SellerWechat: nil,
+		}, nil
+	}
+
+	if product.Status != "ForSale" {
+		return &ContactResponse{
+			CanContact:   false,
+			SellerWechat: nil,
+			Tips:         "商品当前不可联系卖家",
+		}, nil
+	}
+
+	seller, err := s.userRepo.GetByID(ctx, product.SellerID)
+	if err != nil {
+		return nil, fmt.Errorf("获取卖家信息失败: %w", err)
+	}
+
+	wechat := strings.TrimSpace(seller.WechatID)
+	if wechat == "" {
+		return &ContactResponse{
+			CanContact:   false,
+			SellerWechat: nil,
+			Tips:         "卖家联系方式暂不可用，请稍后再试",
+		}, nil
+	}
+
+	return &ContactResponse{
+		CanContact:   true,
+		SellerWechat: &wechat,
+		Tips:         "请线下交易，注意安全",
+	}, nil
 }
 
 // ListMyProducts 获取我的商品列表

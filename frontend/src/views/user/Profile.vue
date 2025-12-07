@@ -5,7 +5,7 @@ import AvatarUpload from '@/components/user/AvatarUpload.vue'
 import ProductCard from '@/components/product/ProductCard.vue'
 import Empty from '@/components/common/Empty.vue'
 import Loading from '@/components/common/Loading.vue'
-import { getRecentViews } from '@/api/user'
+import { getRecentViews, type RecentView } from '@/api/user'
 import type { Product } from '@common/types/product'
 
 type TabType = 'profile' | 'password' | 'recent'
@@ -149,9 +149,17 @@ const loadRecentViews = async () => {
   recentLoading.value = true
   try {
     const res = await getRecentViews()
-    recentProducts.value = res.data.data
+    const views: RecentView[] = res.data.data?.views ?? []
+    recentProducts.value = views.map(({ product }) => ({
+      ...product,
+      description: product.description ?? '',
+      mainImageUrl: product.mainImageUrl || '',
+      createdAt: product.createdAt ?? '',
+      updatedAt: product.updatedAt ?? '',
+    }))
   } catch (error) {
     console.error('加载最近浏览失败:', error)
+    recentProducts.value = []
   } finally {
     recentLoading.value = false
   }
