@@ -78,14 +78,16 @@ type SearchRequest struct {
 
 // SearchParams 搜索参数结构体（与controller中使用的名称保持一致）
 type SearchParams struct {
-	Keyword     string
-	MinPrice    *float64
-	MaxPrice    *float64
-	ConditionID *int64
-	CategoryID  *int64
-	TagID       *int64
-	Page        int
-	PageSize    int
+	Keyword      string
+	MinPrice     *float64
+	MaxPrice     *float64
+	ConditionID  *int64
+	ConditionIDs []int64
+	CategoryID   *int64
+	TagID        *int64
+	Sort         string
+	Page         int
+	PageSize     int
 }
 
 type statusChangeRecord struct {
@@ -236,6 +238,11 @@ func (s *ProductService) UpdateProduct(ctx context.Context, userID, productID in
 
 	if err := s.productRepo.Update(ctx, product, images, tagIDs, isAdmin); err != nil {
 		return nil, err
+	}
+
+	// 更新成功后清理详情缓存，避免返回旧数据
+	if s.cache != nil {
+		_ = s.cache.Delete(ctx, buildDetailCacheKey(product.ID))
 	}
 
 	return product, nil
@@ -475,12 +482,14 @@ func (s *ProductService) Search(ctx context.Context, params *SearchParams) ([]mo
 	}
 
 	repoParams := repository.SearchParams{
-		Keyword:     params.Keyword,
-		Page:        params.Page,
-		PageSize:    params.PageSize,
-		PriceMin:    valueOrZero(params.MinPrice),
-		PriceMax:    valueOrZero(params.MaxPrice),
-		ConditionID: valueOrZeroInt64(params.ConditionID),
+		Keyword:      params.Keyword,
+		Page:         params.Page,
+		PageSize:     params.PageSize,
+		PriceMin:     valueOrZero(params.MinPrice),
+		PriceMax:     valueOrZero(params.MaxPrice),
+		ConditionID:  valueOrZeroInt64(params.ConditionID),
+		ConditionIDs: params.ConditionIDs,
+		Sort:         params.Sort,
 	}
 
 	products, total, err := s.productRepo.Search(ctx, repoParams)
@@ -527,12 +536,14 @@ func (s *ProductService) ListByCategory(ctx context.Context, categoryID int64, p
 	}
 
 	repoParams := repository.SearchParams{
-		Keyword:     params.Keyword,
-		Page:        params.Page,
-		PageSize:    params.PageSize,
-		PriceMin:    valueOrZero(params.MinPrice),
-		PriceMax:    valueOrZero(params.MaxPrice),
-		ConditionID: valueOrZeroInt64(params.ConditionID),
+		Keyword:      params.Keyword,
+		Page:         params.Page,
+		PageSize:     params.PageSize,
+		PriceMin:     valueOrZero(params.MinPrice),
+		PriceMax:     valueOrZero(params.MaxPrice),
+		ConditionID:  valueOrZeroInt64(params.ConditionID),
+		ConditionIDs: params.ConditionIDs,
+		Sort:         params.Sort,
 	}
 
 	products, total, err := s.productRepo.ListByCategory(ctx, categoryID, repoParams)

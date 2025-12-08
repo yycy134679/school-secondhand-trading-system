@@ -468,7 +468,11 @@ func (pc *ProductController) GetProductsByCategory(c *gin.Context) {
 	// 解析查询参数
 	minPriceStr := c.Query("minPrice")
 	maxPriceStr := c.Query("maxPrice")
-	conditionIDStr := c.Query("conditionId")
+	conditionIDsStr := c.Query("conditionIds")
+	if conditionIDsStr == "" {
+		conditionIDsStr = c.Query("conditionId")
+	}
+	sort := c.DefaultQuery("sort", "latest")
 	pageStr := c.DefaultQuery("page", "1")
 	pageSizeStr := c.DefaultQuery("pageSize", "10")
 
@@ -487,6 +491,7 @@ func (pc *ProductController) GetProductsByCategory(c *gin.Context) {
 		CategoryID: &categoryID,
 		Page:       page,
 		PageSize:   pageSize,
+		Sort:       sort,
 	}
 
 	// 解析可选参数
@@ -502,10 +507,19 @@ func (pc *ProductController) GetProductsByCategory(c *gin.Context) {
 		}
 	}
 
-	if conditionIDStr != "" {
-		if conditionID, err := strconv.ParseInt(conditionIDStr, 10, 64); err == nil {
-			params.ConditionID = &conditionID
+	if strings.TrimSpace(conditionIDsStr) != "" {
+		idParts := strings.Split(conditionIDsStr, ",")
+		ids := make([]int64, 0, len(idParts))
+		for _, part := range idParts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			if conditionID, err := strconv.ParseInt(part, 10, 64); err == nil {
+				ids = append(ids, conditionID)
+			}
 		}
+		params.ConditionIDs = ids
 	}
 
 	// 调用服务层方法
