@@ -4,9 +4,9 @@
 *.dll
 *.so
 *.dylib
-cmd
-backend
-main
+/cmd
+/backend
+/main
 
 # Test binary, built with `go test -c`
 *.test
