@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	"github.com/yycy134679/school-secondhand-trading-system/backend/model"
@@ -111,108 +110,93 @@ func (r *productRepository) Create(ctx context.Context, product *model.Product, 
 
 // Update 更新商品信息，包含权限控制
 func (r *productRepository) Update(ctx context.Context, product *model.Product, images []model.ProductImage, tagIDs []int64, isAdmin bool) error {
-	// 开始事务
-	tx := r.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("begin transaction failed: %w", tx.Error)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 获取原商品信息进行权限检查
-	var originalProduct model.Product
-	if err := tx.First(&originalProduct, product.ID).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("get product failed: %w", err)
-	}
-
-	// 权限检查：普通卖家禁止编辑已售出商品
-	if !isAdmin && originalProduct.Status == "Sold" {
-		tx.Rollback()
-		return fmt.Errorf("cannot update sold product")
-	}
-
-	// 管理员在不改变status的前提下可以编辑已售出商品的其他字段
-	if isAdmin && originalProduct.Status == "Sold" && product.Status != "Sold" {
-		tx.Rollback()
-		return fmt.Errorf("admin cannot change status of sold product")
-	}
-
-	// 更新商品基本信息
-	if err := tx.Model(product).Updates(product).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("update product failed: %w", err)
-	}
-
-	// 处理图片更新（这里假设images包含了所有需要保留的图片，会替换原有图片）
-	if len(images) > 0 {
-		// 删除原有图片
-		if err := tx.Where("product_id = ?", product.ID).Delete(&model.ProductImage{}).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("delete old images failed: %w", err)
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 获取原商品信息进行权限检查
+		var originalProduct model.Product
+		if err := tx.First(&originalProduct, product.ID).Error; err != nil {
+			return fmt.Errorf("get product failed: %w", err)
 		}
 
-		// 设置主图URL
-		mainImageURL := ""
-		primaryExists := false
-		for i := range images {
-			images[i].ProductID = product.ID
-			if images[i].IsPrimary {
-				primaryExists = true
-				mainImageURL = images[i].URL
+		// 权限检查：普通卖家禁止编辑已售出商品
+		if !isAdmin && originalProduct.Status == "Sold" {
+			return fmt.Errorf("cannot update sold product")
+		}
+
+		// 管理员在不改变status的前提下可以编辑已售出商品的其他字段
+		if isAdmin && originalProduct.Status == "Sold" && product.Status != "Sold" {
+			return fmt.Errorf("admin cannot change status of sold product")
+		}
+
+		// 更新商品基本信息（仅更新需要的字段，避免覆盖CreatedAt等系统字段）
+		updateFields := map[string]interface{}{
+			"title":        product.Title,
+			"description":  product.Description,
+			"price":        product.Price,
+			"category_id":  product.CategoryID,
+			"condition_id": product.ConditionID,
+			"status":       product.Status,
+		}
+		if err := tx.Model(&model.Product{}).Where("id = ?", product.ID).Updates(updateFields).Error; err != nil {
+			return fmt.Errorf("update product failed: %w", err)
+		}
+
+		// 处理图片更新（这里假设images包含了所有需要保留的图片，会替换原有图片）
+		if len(images) > 0 {
+			// 删除原有图片
+			if err := tx.Where("product_id = ?", product.ID).Delete(&model.ProductImage{}).Error; err != nil {
+				return fmt.Errorf("delete old images failed: %w", err)
+			}
+
+			// 设置主图URL
+			mainImageURL := ""
+			primaryExists := false
+			for i := range images {
+				images[i].ProductID = product.ID
+				if images[i].IsPrimary {
+					primaryExists = true
+					mainImageURL = images[i].URL
+				}
+			}
+			// 如果没有指定主图，将第一张设为主图
+			if !primaryExists && len(images) > 0 {
+				images[0].IsPrimary = true
+				mainImageURL = images[0].URL
+			}
+
+			// 插入新图片
+			if err := tx.Create(&images).Error; err != nil {
+				return fmt.Errorf("create new images failed: %w", err)
+			}
+
+			// 更新主图URL
+			if mainImageURL != "" {
+				if err := tx.Model(&model.Product{}).Where("id = ?", product.ID).Update("main_image_url", mainImageURL).Error; err != nil {
+					return fmt.Errorf("update main image url failed: %w", err)
+				}
 			}
 		}
-		// 如果没有指定主图，将第一张设为主图
-		if !primaryExists && len(images) > 0 {
-			images[0].IsPrimary = true
-			mainImageURL = images[0].URL
-		}
 
-		// 插入新图片
-		if err := tx.CreateInBatches(images, len(images)).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("create new images failed: %w", err)
+		// 更新标签关联
+		if err := tx.Table("product_tags").Where("product_id = ?", product.ID).Delete(nil).Error; err != nil {
+			return fmt.Errorf("delete old tags relation failed: %w", err)
 		}
-
-		// 更新主图URL
-		if mainImageURL != "" {
-			if err := tx.Model(product).Update("main_image_url", mainImageURL).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("update main image url failed: %w", err)
+		if len(tagIDs) > 0 {
+			for _, tagID := range tagIDs {
+				productTag := struct {
+					ProductID int64 `gorm:"column:product_id"`
+					TagID     int64 `gorm:"column:tag_id"`
+				}{
+					ProductID: product.ID,
+					TagID:     tagID,
+				}
+				if err := tx.Table("product_tags").Create(&productTag).Error; err != nil {
+					return fmt.Errorf("create new tags relation failed: %w", err)
+				}
 			}
 		}
-	}
 
-	// 更新标签关联
-	// 删除原有标签关联
-	if err := tx.Table("product_tags").Where("product_id = ?", product.ID).Delete(nil).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("delete old tags relation failed: %w", err)
-	}
-
-	// 创建新标签关联
-	if len(tagIDs) > 0 {
-		for _, tagID := range tagIDs {
-			productTag := gin.H{
-				"product_id": product.ID,
-				"tag_id":     tagID,
-			}
-			if err := tx.Table("product_tags").Create(productTag).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("create new tags relation failed: %w", err)
-			}
-		}
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("commit transaction failed: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // GetByID 根据ID获取商品详情，联合加载图片与tags

@@ -240,6 +240,11 @@ func (s *ProductService) UpdateProduct(ctx context.Context, userID, productID in
 		return nil, err
 	}
 
+	// 更新成功后清理详情缓存，避免返回旧数据
+	if s.cache != nil {
+		_ = s.cache.Delete(ctx, buildDetailCacheKey(product.ID))
+	}
+
 	return product, nil
 }
 
