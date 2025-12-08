@@ -375,9 +375,24 @@ func (s *RecommendService) GetRecentViewsWithProducts(ctx context.Context, userI
 		return []RecentViewWithProduct{}, nil
 	}
 
+	// 按商品去重，保留最新一次浏览
+	uniqueViews := make([]model.UserRecentView, 0, len(views))
+	seen := make(map[int64]struct{}, len(views))
+	for _, view := range views {
+		if _, exists := seen[view.ProductID]; exists {
+			continue
+		}
+		seen[view.ProductID] = struct{}{}
+		uniqueViews = append(uniqueViews, view)
+	}
+
+	if len(uniqueViews) == 0 {
+		return []RecentViewWithProduct{}, nil
+	}
+
 	// 提取商品ID
-	productIDs := make([]int64, len(views))
-	for i, view := range views {
+	productIDs := make([]int64, len(uniqueViews))
+	for i, view := range uniqueViews {
 		productIDs[i] = view.ProductID
 	}
 
@@ -398,8 +413,8 @@ func (s *RecommendService) GetRecentViewsWithProducts(ctx context.Context, userI
 	}
 
 	// 组装结果
-	result := make([]RecentViewWithProduct, 0, len(views))
-	for _, view := range views {
+	result := make([]RecentViewWithProduct, 0, len(uniqueViews))
+	for _, view := range uniqueViews {
 		if product, exists := productMap[view.ProductID]; exists {
 			result = append(result, RecentViewWithProduct{
 				ViewedAt: view.ViewedAt,
