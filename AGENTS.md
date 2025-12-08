@@ -1,7 +1,4 @@
-name: Copilot 指南
-description: 面向本仓库的 AI 协作指引，涵盖前后端架构、关键命令、业务约束与代码约定。
-applyTo: '**'
----
+# AGENTS.md
 
 ## 项目总览
 - 单仓三子项目：`frontend` 学生端、`admin-frontend` 管理端（皆 Vue3+TS+Vite+Pinia）、`backend` Go Gin 服务；共享类型与常量位于 `common/`，通过别名 `@common/*` 引入。
@@ -26,11 +23,6 @@ applyTo: '**'
 - 状态：Pinia stores in `src/stores/`（user/product/app）；`app.initDictionaries()` 启动时拉取分类/标签/新旧程度，不要硬编码 `product_conditions`。
 - 路由：`src/router/index.ts` 使用 `meta.requiresAuth` 守卫；未登录访问受限页触发登录弹窗/跳转。联系卖家按钮调用独立 contact 接口。
 - 常用命令：`pnpm install`；`pnpm dev`（5173）；`pnpm type-check`、`pnpm lint`、`pnpm build`。
-
-## 管理端前端约定（`admin-frontend/`）
-- 同 Vue3+TS+Pinia，UI 选用 Element Plus；登录沿用学生端 `/users/login`，需校验响应 `isAdmin`，否则登出并提示。
-- API 封装与别名配置同学生端，接口位于 `src/api/`（admin/product/category/tag 等）。路由守卫除 `/login` 外均需 token+isAdmin。
-- 常用命令同上，端口默认 5173，代理 `/api` 指向后端 8080。
 
 ## 联调与数据约束
 - 接口契约以 `docs/api.md` 为准，尤其联系卖家、状态机、撤销窗口；发现设计冲突以该文档和 schema 触发器为权威。

@@ -24,12 +24,14 @@ type ProductRepository interface {
 
 // SearchParams 搜索参数
 type SearchParams struct {
-	Keyword     string
-	PriceMin    float64
-	PriceMax    float64
-	ConditionID int64
-	Page        int
-	PageSize    int
+	Keyword      string
+	PriceMin     float64
+	PriceMax     float64
+	ConditionID  int64
+	ConditionIDs []int64
+	Sort         string
+	Page         int
+	PageSize     int
 }
 
 // productRepository 商品仓库实现
@@ -314,7 +316,9 @@ func (r *productRepository) Search(ctx context.Context, params SearchParams) ([]
 		query = query.Where("title LIKE ? OR description LIKE ?", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	if params.ConditionID > 0 {
+	if len(params.ConditionIDs) > 0 {
+		query = query.Where("condition_id IN ?", params.ConditionIDs)
+	} else if params.ConditionID > 0 {
 		query = query.Where("condition_id = ?", params.ConditionID)
 	}
 
@@ -335,7 +339,14 @@ func (r *productRepository) Search(ctx context.Context, params SearchParams) ([]
 	// 分页查询
 	var products []model.Product
 	offset := (params.Page - 1) * params.PageSize
-	if err := query.Order("created_at DESC").Offset(offset).Limit(params.PageSize).Find(&products).Error; err != nil {
+	orderBy := "created_at DESC"
+	switch params.Sort {
+	case "priceAsc":
+		orderBy = "price ASC"
+	case "priceDesc":
+		orderBy = "price DESC"
+	}
+	if err := query.Order(orderBy).Offset(offset).Limit(params.PageSize).Find(&products).Error; err != nil {
 		return nil, 0, fmt.Errorf("search products failed: %w", err)
 	}
 
@@ -378,7 +389,9 @@ func (r *productRepository) ListByCategory(ctx context.Context, categoryID int64
 		query = query.Where("title LIKE ? OR description LIKE ?", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	if params.ConditionID > 0 {
+	if len(params.ConditionIDs) > 0 {
+		query = query.Where("condition_id IN ?", params.ConditionIDs)
+	} else if params.ConditionID > 0 {
 		query = query.Where("condition_id = ?", params.ConditionID)
 	}
 
@@ -399,7 +412,14 @@ func (r *productRepository) ListByCategory(ctx context.Context, categoryID int64
 	// 分页查询
 	var products []model.Product
 	offset := (params.Page - 1) * params.PageSize
-	if err := query.Order("created_at DESC").Offset(offset).Limit(params.PageSize).Find(&products).Error; err != nil {
+	orderBy := "created_at DESC"
+	switch params.Sort {
+	case "priceAsc":
+		orderBy = "price ASC"
+	case "priceDesc":
+		orderBy = "price DESC"
+	}
+	if err := query.Order(orderBy).Offset(offset).Limit(params.PageSize).Find(&products).Error; err != nil {
 		return nil, 0, fmt.Errorf("list category products failed: %w", err)
 	}
 

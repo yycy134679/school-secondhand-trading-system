@@ -18,3 +18,7 @@ yarn-error.log*
 # 忽略缓存和配置目录
 .cache/
 .claude/
+
+# 其他
+.github/
+.kiro/
