@@ -16,6 +16,7 @@ type Config struct {
 	DBDSN          string // 数据库连接字符串（PostgreSQL）
 	JWTSecret      string // JWT签名密钥，用于token的生成和验证
 	FileStorageDir string // 文件上传存储目录，用于保存商品图片等
+	BaseURL        string
 }
 
 // LoadConfig 从配置源加载应用配置
@@ -59,7 +60,7 @@ func LoadConfig() (*Config, error) {
 	v.SetDefault("DB_DSN", "")                       // 默认无数据库连接
 	v.SetDefault("JWT_SECRET", "please-change-this") // 默认JWT密钥（生产环境必须修改）
 	v.SetDefault("FILE_STORAGE_DIR", "./uploads")    // 默认文件存储目录
-
+	v.SetDefault("BASE_URL", "http://localhost:8080")
 	// 从Viper中读取配置值并构建Config对象
 	cfg := &Config{
 		AppEnv:         v.GetString("APP_ENV"),
@@ -67,6 +68,7 @@ func LoadConfig() (*Config, error) {
 		DBDSN:          v.GetString("DB_DSN"),
 		JWTSecret:      v.GetString("JWT_SECRET"),
 		FileStorageDir: v.GetString("FILE_STORAGE_DIR"),
+		BaseURL:        v.GetString("BASE_URL"),
 	}
 
 	// 配置验证：HTTP端口不能为0

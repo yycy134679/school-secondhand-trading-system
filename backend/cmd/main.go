@@ -59,7 +59,7 @@ func main() {
 
 	// 步骤5: 启动HTTP服务器
 	// 构造监听地址（例如：:8080）
-	addr := fmt.Sprintf(":%d", cfg.HTTPPort)
+    addr := fmt.Sprintf("0.0.0.0:%d", cfg.HTTPPort)
 	log.Printf("starting server on %s", addr)
 
 	// 启动Gin HTTP服务器

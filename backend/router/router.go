@@ -61,7 +61,7 @@ func SetupRouter(db *gorm.DB, memCache *cache.MemoryCache, cfg *config.Config) *
 
 	// 同步文件存储目录配置，确保静态托管与保存路径一致
 	util.FileStorageDir = cfg.FileStorageDir
-
+	util.BaseURL = cfg.BaseURL
 	// 注册CORS中间件，解决跨域问题
 	// 注意：在生产环境中，建议配置具体的允许来源，而不是使用通配符
 	r.Use(middleware.CORSMiddleware())
